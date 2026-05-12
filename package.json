@@ -1,0 +1,24 @@
+{
+  "name": "devhora",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "mobile:start": "npm run start --workspace @devhora/mobile",
+    "mobile:android": "npm run android --workspace @devhora/mobile",
+    "mobile:ios": "npm run ios --workspace @devhora/mobile",
+    "mobile:web": "npm run web --workspace @devhora/mobile",
+    "mobile:build:apk": "npm run build:apk --workspace @devhora/mobile",
+    "landing:dev": "npm run dev --workspace @devhora/landing",
+    "landing:build": "npm run build --workspace @devhora/landing"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  }
+}

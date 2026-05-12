@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "DevHora",
+    "slug": "devhora",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "devhora",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.devhora.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

@@ -18,7 +18,7 @@ export function SettingsScreen() {
       const uri = await exportBackup(getAppDataSnapshot());
 
       if (uri) {
-        Alert.alert("Backup exportado", uri);
+        Alert.alert("Backup pronto", uri);
       }
     } catch {
       Alert.alert("Exportar backup", "Nao consegui gerar o backup neste aparelho.");

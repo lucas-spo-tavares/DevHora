@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Calendar, Clock3, Plus, Trash2 } from "lucide-react-native";
 import { createEmptyEntry, nextPunchType, summarizeDay } from "../lib/calculations";
 import { formatDateLabel, parseDateKey, todayKey, toDateKey } from "../lib/dates";
@@ -133,11 +134,24 @@ export function ManualAdjustmentScreen() {
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [draftPickerTime, setDraftPickerTime] = useState(createDraftTime(todayKey(), 8, 0));
   const [timePickerTarget, setTimePickerTarget] = useState<TimePickerTarget>(null);
+  const loadedDateRef = useRef(loadedDate);
+
+  useEffect(() => {
+    loadedDateRef.current = loadedDate;
+  }, [loadedDate]);
 
   useEffect(() => {
     loadDay(todayKey());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        loadDay(loadedDateRef.current);
+      };
+    }, [])
+  );
 
   function loadDay(targetDate: string) {
     if (!isValidDateKey(targetDate)) {
@@ -179,6 +193,10 @@ export function ManualAdjustmentScreen() {
   function confirmDatePicker() {
     loadDay(toDateKey(draftPickerDate));
     setIsDatePickerOpen(false);
+  }
+
+  function discardChanges() {
+    loadDay(loadedDate);
   }
 
   function applySelectedTime(target: TimePickerTarget, selectedTime: Date) {
@@ -422,13 +440,23 @@ export function ManualAdjustmentScreen() {
         <TextField onChangeText={setNote} placeholder="Observação" value={note} />
       </View>
 
-      <TextButton label="Salvar alterações" onPress={saveDraft} variant="primary" />
+      <View style={styles.actionRow}>
+        <TextButton label="Descartar alterações" onPress={discardChanges} variant="warning" style={styles.actionButton} />
+        <TextButton label="Salvar alterações" onPress={saveDraft} variant="primary" style={styles.actionButton} />
+      </View>
     </ScreenTemplate>
   );
 }
 
 const styles = StyleSheet.create({
   addBox: {
+    gap: 10
+  },
+  actionButton: {
+    flex: 1
+  },
+  actionRow: {
+    flexDirection: "row",
     gap: 10
   },
   chips: {

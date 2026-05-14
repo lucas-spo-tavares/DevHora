@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { formatDateLabel } from "../../lib/dates";
+import { formatDateLabel, parseDateKey, weekdayLabel } from "../../lib/dates";
 import { formatSignedMinutes } from "../../lib/time";
 import { colors } from "../../theme/colors";
 import { DaySummary } from "../../types/app";
@@ -9,10 +9,12 @@ type DayProgressRowProps = {
 };
 
 export function DayProgressRow({ day }: DayProgressRowProps) {
+  const weekday = weekdayLabel(parseDateKey(day.date).getDay());
+
   return (
     <View style={styles.row}>
       <View>
-        <Text style={styles.title}>{formatDateLabel(day.date)}</Text>
+        <Text style={styles.title}>{`${weekday} · ${formatDateLabel(day.date)}`}</Text>
         <Text style={styles.meta}>{day.isMissing ? "Ponto pendente" : "Saldo do dia"}</Text>
       </View>
       <Text style={[styles.balance, day.balanceMinutes >= 0 ? styles.positive : styles.negative]}>
@@ -52,4 +54,3 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   }
 });
-

@@ -5,6 +5,9 @@
   "workspaces": [
     "apps/*"
   ],
+  "engines": {
+    "node": ">=22 <23"
+  },
   "packageManager": "npm@10.8.2",
   "scripts": {
     "dev": "turbo dev",

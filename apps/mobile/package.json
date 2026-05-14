@@ -2,7 +2,7 @@
   "name": "@devhora/mobile",
   "version": "0.1.0",
   "private": true,
-  "main": "expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "dev": "expo start",
     "start": "expo start",

@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { Plus, Trash2 } from "lucide-react-native";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Calendar, Clock3, Plus, Trash2 } from "lucide-react-native";
 import { createEmptyEntry, nextPunchType, summarizeDay } from "../lib/calculations";
-import { formatDateLabel, todayKey } from "../lib/dates";
-import { DraftPunchEvent, formatTimeInput, parseTimeInput, sortPunchEvents, toDraftPunchEvent, validatePunchEvents } from "../lib/manualEntry";
+import { formatDateLabel, parseDateKey, todayKey, toDateKey } from "../lib/dates";
+import {
+  createDraftTime,
+  DraftPunchEvent,
+  formatTimeInput,
+  parseTimeInput,
+  sortPunchEvents,
+  toDraftPunchEvent,
+  validatePunchEvents
+} from "../lib/manualEntry";
 import { formatMinutes, formatSignedMinutes } from "../lib/time";
 import { useWorkStore } from "../store/workStore";
 import { colors } from "../theme/colors";
@@ -17,6 +26,13 @@ type PunchOption = {
   value: PunchType;
 };
 
+type TimePickerTarget = {
+  index: number;
+  kind: "draft";
+} | {
+  kind: "new";
+} | null;
+
 const PUNCH_OPTIONS: PunchOption[] = [
   { label: "Entrada", value: "start" },
   { label: "Início pausa", value: "pauseStart" },
@@ -24,10 +40,10 @@ const PUNCH_OPTIONS: PunchOption[] = [
   { label: "Saída", value: "end" }
 ];
 
-function createEmptyDraftEvent(type: PunchType = "start"): DraftPunchEvent {
+function createEmptyDraftEvent(dateKey: string, type: PunchType = "start"): DraftPunchEvent {
   return {
     id: `${Date.now()}-${Math.random()}`,
-    time: "08:00",
+    time: createDraftTime(dateKey, 8, 0),
     type
   };
 }
@@ -61,11 +77,12 @@ function normalizeDraftEvents(dateKey: string, events: DraftPunchEvent[]): WorkE
 type DraftEventRowProps = {
   event: DraftPunchEvent;
   index: number;
+  onEditTime: (index: number) => void;
   onChange: (index: number, patch: Partial<DraftPunchEvent>) => void;
   onRemove: (index: number) => void;
 };
 
-function DraftEventRow({ event, index, onChange, onRemove }: DraftEventRowProps) {
+function DraftEventRow({ event, index, onEditTime, onChange, onRemove }: DraftEventRowProps) {
   return (
     <View style={styles.eventCard}>
       <View style={styles.eventHeader}>
@@ -89,7 +106,13 @@ function DraftEventRow({ event, index, onChange, onRemove }: DraftEventRowProps)
           );
         })}
       </View>
-      <TextField inputMode="numeric" onChangeText={(time) => onChange(index, { time })} placeholder="HH:MM" value={event.time} />
+      <Pressable onPress={() => onEditTime(index)} style={styles.timeButton}>
+        <Clock3 color={colors.primary} size={18} />
+        <View>
+          <Text style={styles.timeButtonLabel}>Hora</Text>
+          <Text style={styles.timeButtonValue}>{formatTimeInput(event.time)}</Text>
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -99,20 +122,24 @@ export function ManualAdjustmentScreen() {
   const settings = useWorkStore((state) => state.settings);
   const saveEntry = useWorkStore((state) => state.saveEntry);
 
-  const [dateInput, setDateInput] = useState(todayKey());
   const [loadedDate, setLoadedDate] = useState(todayKey());
   const [draftEvents, setDraftEvents] = useState<DraftPunchEvent[]>([]);
   const [adjustmentMinutes, setAdjustmentMinutes] = useState("0");
   const [note, setNote] = useState("");
-  const [newEventTime, setNewEventTime] = useState("08:00");
+  const [newEventTime, setNewEventTime] = useState(createDraftTime(todayKey(), 8, 0));
   const [newEventType, setNewEventType] = useState<PunchType>("start");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [draftPickerDate, setDraftPickerDate] = useState(parseDateKey(todayKey()));
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+  const [draftPickerTime, setDraftPickerTime] = useState(createDraftTime(todayKey(), 8, 0));
+  const [timePickerTarget, setTimePickerTarget] = useState<TimePickerTarget>(null);
 
   useEffect(() => {
     loadDay(todayKey());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function loadDay(targetDate = dateInput) {
+  function loadDay(targetDate: string) {
     if (!isValidDateKey(targetDate)) {
       Alert.alert("Edição manual", "Use uma data no formato AAAA-MM-DD.");
       return;
@@ -121,12 +148,76 @@ export function ManualAdjustmentScreen() {
     const entry = entries[targetDate] ?? createEmptyEntry(targetDate);
 
     setLoadedDate(targetDate);
-    setDateInput(targetDate);
     setDraftEvents(entry.events.map(toDraftPunchEvent));
     setAdjustmentMinutes(String(entry.adjustmentMinutes));
     setNote(entry.note);
-    setNewEventTime(entry.events.at(-1) ? formatTimeInput(entry.events.at(-1)!.timestamp) : "08:00");
+    setNewEventTime(entry.events.at(-1) ? new Date(entry.events.at(-1)!.timestamp) : createDraftTime(targetDate, 8, 0));
     setNewEventType(nextPunchType(entry.events) ?? "start");
+  }
+
+  function openDatePicker() {
+    const currentDate = parseDateKey(loadedDate);
+
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        mode: "date",
+        onChange: (_, selectedDate) => {
+          if (selectedDate) {
+            setDraftPickerDate(selectedDate);
+            loadDay(toDateKey(selectedDate));
+          }
+        },
+        value: currentDate
+      });
+      return;
+    }
+
+    setDraftPickerDate(currentDate);
+    setIsDatePickerOpen(true);
+  }
+
+  function confirmDatePicker() {
+    loadDay(toDateKey(draftPickerDate));
+    setIsDatePickerOpen(false);
+  }
+
+  function applySelectedTime(target: TimePickerTarget, selectedTime: Date) {
+    if (!target) {
+      return;
+    }
+
+    if (target.kind === "new") {
+      setNewEventTime(selectedTime);
+      return;
+    }
+
+    setDraftEvents((current) => current.map((event, currentIndex) => (currentIndex === target.index ? { ...event, time: selectedTime } : event)));
+  }
+
+  function openTimePicker(target: TimePickerTarget, initialTime: Date) {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        is24Hour: true,
+        mode: "time",
+        onChange: (_, selectedTime) => {
+          if (selectedTime) {
+            applySelectedTime(target, selectedTime);
+          }
+        },
+        value: initialTime
+      });
+      return;
+    }
+
+    setDraftPickerTime(initialTime);
+    setTimePickerTarget(target);
+    setIsTimePickerOpen(true);
+  }
+
+  function confirmTimePicker() {
+    applySelectedTime(timePickerTarget, draftPickerTime);
+    setIsTimePickerOpen(false);
+    setTimePickerTarget(null);
   }
 
   function updateDraftEvent(index: number, patch: Partial<DraftPunchEvent>) {
@@ -146,7 +237,7 @@ export function ManualAdjustmentScreen() {
     setDraftEvents((current) => [
       ...current,
       {
-        ...createEmptyDraftEvent(newEventType),
+        ...createEmptyDraftEvent(loadedDate, newEventType),
         time: newEventTime
       }
     ]);
@@ -213,10 +304,65 @@ export function ManualAdjustmentScreen() {
       <Text style={styles.description}>
         Aqui você pode lançar entrada, pausas e saída, além de corrigir horários de dias já registrados.
       </Text>
-      <View style={styles.loadRow}>
-        <TextField onChangeText={setDateInput} placeholder="AAAA-MM-DD" style={styles.dateField} value={dateInput} />
-        <TextButton label="Carregar dia" onPress={() => loadDay()} style={styles.loadButton} />
+      <View style={styles.fieldGroup}>
+        <Text style={styles.sectionLabel}>Carregar dia</Text>
+        <Pressable onPress={openDatePicker} style={styles.datePickerButton}>
+          <View style={styles.datePickerButtonContent}>
+            <Calendar color={colors.primary} size={18} />
+            <View style={styles.datePickerTextBlock}>
+              <Text style={styles.datePickerLabel}>Selecionar dia</Text>
+              <Text style={styles.datePickerValue}>{formatDateLabel(loadedDate)}</Text>
+            </View>
+          </View>
+        </Pressable>
       </View>
+
+      <Modal animationType="fade" onRequestClose={() => setIsDatePickerOpen(false)} transparent visible={isDatePickerOpen}>
+        <View style={styles.modalBackdrop}>
+          <Pressable onPress={() => setIsDatePickerOpen(false)} style={styles.modalBackdropHitArea} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Selecionar data</Text>
+            <DateTimePicker
+              display="spinner"
+              mode="date"
+              onChange={(_, selectedDate) => {
+                if (selectedDate) {
+                  setDraftPickerDate(selectedDate);
+                }
+              }}
+              value={draftPickerDate}
+            />
+            <View style={styles.modalActions}>
+              <TextButton label="Cancelar" onPress={() => setIsDatePickerOpen(false)} style={styles.modalAction} />
+              <TextButton label="Carregar" onPress={confirmDatePicker} variant="primary" style={styles.modalAction} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" onRequestClose={() => setIsTimePickerOpen(false)} transparent visible={isTimePickerOpen}>
+        <View style={styles.modalBackdrop}>
+          <Pressable onPress={() => setIsTimePickerOpen(false)} style={styles.modalBackdropHitArea} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Selecionar hora</Text>
+            <DateTimePicker
+              display="spinner"
+              is24Hour
+              mode="time"
+              onChange={(_, selectedTime) => {
+                if (selectedTime) {
+                  setDraftPickerTime(selectedTime);
+                }
+              }}
+              value={draftPickerTime}
+            />
+            <View style={styles.modalActions}>
+              <TextButton label="Cancelar" onPress={() => setIsTimePickerOpen(false)} style={styles.modalAction} />
+              <TextButton label="Carregar" onPress={confirmTimePicker} variant="primary" style={styles.modalAction} />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.summaryBox}>
         <Text style={styles.summaryLabel}>{formatDateLabel(loadedDate)}</Text>
@@ -229,7 +375,14 @@ export function ManualAdjustmentScreen() {
       {draftEvents.length ? (
         <View style={styles.eventsList}>
           {draftEvents.map((event, index) => (
-            <DraftEventRow event={event} index={index} key={event.id} onChange={updateDraftEvent} onRemove={removeDraftEvent} />
+            <DraftEventRow
+              event={event}
+              index={index}
+              key={event.id}
+              onChange={updateDraftEvent}
+              onEditTime={(draftIndex) => openTimePicker({ index: draftIndex, kind: "draft" }, event.time)}
+              onRemove={removeDraftEvent}
+            />
           ))}
         </View>
       ) : (
@@ -253,7 +406,13 @@ export function ManualAdjustmentScreen() {
             );
           })}
         </View>
-        <TextField inputMode="numeric" onChangeText={setNewEventTime} placeholder="HH:MM" value={newEventTime} />
+        <Pressable onPress={() => openTimePicker({ kind: "new" }, newEventTime)} style={styles.timeButton}>
+          <Clock3 color={colors.primary} size={18} />
+          <View>
+            <Text style={styles.timeButtonLabel}>Hora do novo ponto</Text>
+            <Text style={styles.timeButtonValue}>{formatTimeInput(newEventTime)}</Text>
+          </View>
+        </Pressable>
         <TextButton icon={<Plus color={colors.text} size={18} />} label="Adicionar" onPress={addDraftEvent} />
       </View>
 
@@ -297,9 +456,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary
   },
-  dateField: {
-    flex: 1
-  },
   description: {
     color: colors.muted,
     fontSize: 14,
@@ -342,13 +498,88 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 32
   },
-  loadButton: {
-    alignSelf: "stretch"
+  datePickerButton: {
+    backgroundColor: colors.primaryText,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14
   },
-  loadRow: {
-    alignItems: "stretch",
+  datePickerButtonContent: {
+    alignItems: "center",
     flexDirection: "row",
     gap: 10
+  },
+  datePickerLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  datePickerTextBlock: {
+    gap: 2
+  },
+  datePickerValue: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "flex-end",
+    marginTop: 12
+  },
+  modalAction: {
+    minWidth: 120
+  },
+  modalBackdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 20
+  },
+  modalBackdropHitArea: {
+    ...StyleSheet.absoluteFillObject
+  },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderRadius: 22,
+    elevation: 4,
+    maxWidth: 420,
+    position: "relative",
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    width: "100%"
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 10
+  },
+  timeButton: {
+    alignItems: "center",
+    backgroundColor: colors.primaryText,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  timeButtonLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  timeButtonValue: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "900"
   },
   sectionLabel: {
     color: colors.text,

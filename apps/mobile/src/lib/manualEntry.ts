@@ -3,37 +3,32 @@ import { parseDateKey } from "./dates";
 
 export type DraftPunchEvent = {
   id: string;
-  time: string;
+  time: Date;
   type: PunchType;
 };
 
-export function formatTimeInput(iso: string): string {
-  const date = new Date(iso);
+export function createDraftTime(dateKey: string, hours = 8, minutes = 0): Date {
+  const date = parseDateKey(dateKey);
+  date.setHours(hours, minutes, 0, 0);
+
+  return date;
+}
+
+export function formatTimeInput(value: string | Date): string {
+  const date = new Date(value);
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
 
   return `${hours}:${minutes}`;
 }
 
-export function parseTimeInput(dateKey: string, time: string): string | null {
-  if (!/^\d{2}:\d{2}$/.test(time)) {
-    return null;
-  }
-
-  const [hoursRaw = NaN, minutesRaw = NaN] = time.split(":");
-  const hours = Number(hoursRaw);
-  const minutes = Number(minutesRaw);
-
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
-    return null;
-  }
-
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+export function parseTimeInput(dateKey: string, time: Date): string | null {
+  if (!(time instanceof Date) || Number.isNaN(time.getTime())) {
     return null;
   }
 
   const date = parseDateKey(dateKey);
-  date.setHours(hours, minutes, 0, 0);
+  date.setHours(time.getHours(), time.getMinutes(), 0, 0);
 
   return date.toISOString();
 }
@@ -120,7 +115,7 @@ export function validatePunchEvents(events: PunchEvent[]): string | null {
 export function toDraftPunchEvent(event: PunchEvent): DraftPunchEvent {
   return {
     id: event.id,
-    time: formatTimeInput(event.timestamp),
+    time: new Date(event.timestamp),
     type: event.type
   };
 }

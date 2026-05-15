@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDateLabel, parseDateKey, weekdayLabel } from "../../lib/dates";
 import { formatSignedMinutes } from "../../lib/time";
 import { colors } from "../../theme/colors";
@@ -6,10 +6,25 @@ import { DaySummary } from "../../types/app";
 
 type DayProgressRowProps = {
   day: DaySummary;
+  onPress?: (dateKey: string) => void;
 };
 
-export function DayProgressRow({ day }: DayProgressRowProps) {
+export function DayProgressRow({ day, onPress }: DayProgressRowProps) {
   const weekday = weekdayLabel(parseDateKey(day.date).getDay());
+
+  if (onPress) {
+    return (
+      <Pressable accessibilityRole="button" onPress={() => onPress(day.date)} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+        <View>
+          <Text style={styles.title}>{`${weekday} · ${formatDateLabel(day.date)}`}</Text>
+          <Text style={styles.meta}>{day.isMissing ? "Ponto pendente" : "Saldo do dia"}</Text>
+        </View>
+        <Text style={[styles.balance, day.balanceMinutes >= 0 ? styles.positive : styles.negative]}>
+          {formatSignedMinutes(day.balanceMinutes)}
+        </Text>
+      </Pressable>
+    );
+  }
 
   return (
     <View style={styles.row}>
@@ -47,6 +62,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 14
+  },
+  rowPressed: {
+    opacity: 0.75
   },
   title: {
     color: colors.text,

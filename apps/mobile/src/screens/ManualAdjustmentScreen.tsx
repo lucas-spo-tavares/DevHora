@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
 import { Calendar, Clock3, Plus, Trash2 } from "lucide-react-native";
 import { createEmptyEntry, nextPunchType, summarizeDay } from "../lib/calculations";
 import { formatDateLabel, parseDateKey, todayKey, toDateKey } from "../lib/dates";
@@ -21,6 +21,7 @@ import { PunchType, WorkEntry } from "../types/app";
 import { TextButton } from "../components/atoms/TextButton";
 import { TextField } from "../components/atoms/TextField";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
+import type { RootTabParamList } from "../navigation/AppNavigator";
 
 type PunchOption = {
   label: string;
@@ -119,6 +120,7 @@ function DraftEventRow({ event, index, onEditTime, onChange, onRemove }: DraftEv
 }
 
 export function ManualAdjustmentScreen() {
+  const route = useRoute<RouteProp<RootTabParamList, "Adjustment">>();
   const entries = useWorkStore((state) => state.entries);
   const settings = useWorkStore((state) => state.settings);
   const saveEntry = useWorkStore((state) => state.saveEntry);
@@ -141,9 +143,10 @@ export function ManualAdjustmentScreen() {
   }, [loadedDate]);
 
   useEffect(() => {
-    loadDay(todayKey());
+    const targetDate = route.params?.dateKey && isValidDateKey(route.params.dateKey) ? route.params.dateKey : todayKey();
+    loadDay(targetDate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [route.params?.dateKey]);
 
   useFocusEffect(
     useCallback(() => {

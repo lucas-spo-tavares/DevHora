@@ -7,15 +7,23 @@ type WorkdaysPanelProps = {
   workdays: number[];
 };
 
-const week = [0, 1, 2, 3, 4, 5, 6];
+const weekdayTopRow = [1, 2, 3, 4, 5];
+const weekendBottomRow = [6, 0];
 
 export function WorkdaysPanel({ onToggleWorkday, workdays }: WorkdaysPanelProps) {
   return (
     <Panel title="Dias de trabalho">
       <View style={styles.grid}>
-        {week.map((day) => (
-          <WeekdayToggle day={day} key={day} onPress={() => onToggleWorkday(day)} selected={workdays.includes(day)} />
-        ))}
+        <View style={styles.row}>
+          {weekdayTopRow.map((day) => (
+            <WeekdayToggle day={day} key={day} onPress={() => onToggleWorkday(day)} selected={workdays.includes(day)} />
+          ))}
+        </View>
+        <View style={styles.weekendRow}>
+          {weekendBottomRow.map((day) => (
+            <WeekdayToggle day={day} key={day} onPress={() => onToggleWorkday(day)} selected={workdays.includes(day)} />
+          ))}
+        </View>
       </View>
     </Panel>
   );
@@ -23,8 +31,17 @@ export function WorkdaysPanel({ onToggleWorkday, workdays }: WorkdaysPanelProps)
 
 const styles = StyleSheet.create({
   grid: {
+    gap: 8
+  },
+  row: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8
+    gap: 8,
+    justifyContent: "center"
+  },
+  weekendRow: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center"
   }
 });

@@ -1,6 +1,7 @@
 import { Alert } from "react-native";
 import { BackupPanel } from "../components/organisms/BackupPanel";
 import { DailyHoursPanel } from "../components/organisms/DailyHoursPanel";
+import { PeriodStartPanel } from "../components/organisms/PeriodStartPanel";
 import { WorkdaysPanel } from "../components/organisms/WorkdaysPanel";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
 import { exportBackup, importBackup } from "../services/backupService";
@@ -8,8 +9,10 @@ import { getAppDataSnapshot, useWorkStore } from "../store/workStore";
 
 export function SettingsScreen() {
   const dailyMinutes = useWorkStore((state) => state.settings.dailyMinutes);
+  const periodStart = useWorkStore((state) => state.settings.periodStart);
   const replaceData = useWorkStore((state) => state.replaceData);
   const setDailyMinutes = useWorkStore((state) => state.setDailyMinutes);
+  const setPeriodStart = useWorkStore((state) => state.setPeriodStart);
   const toggleWorkday = useWorkStore((state) => state.toggleWorkday);
   const workdays = useWorkStore((state) => state.settings.workdays);
 
@@ -43,6 +46,7 @@ export function SettingsScreen() {
   return (
     <ScreenTemplate eyebrow="Regras do calculo" title="Configuracoes">
       <DailyHoursPanel dailyMinutes={dailyMinutes} onSaveDailyMinutes={setDailyMinutes} />
+      <PeriodStartPanel onSavePeriodStart={setPeriodStart} periodStart={periodStart} />
       <WorkdaysPanel onToggleWorkday={toggleWorkday} workdays={workdays} />
       <BackupPanel onExportBackup={handleExportBackup} onImportBackup={handleImportBackup} />
     </ScreenTemplate>

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { MetricCard } from "../components/molecules/MetricCard";
-import { PeriodActions } from "../components/organisms/PeriodActions";
 import { ProgressDaysPanel } from "../components/organisms/ProgressDaysPanel";
 import { SharePanel } from "../components/organisms/SharePanel";
 import { SummaryGrid } from "../components/organisms/SummaryGrid";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
-import { periodTotals, summarizeDay } from "../lib/calculations";
-import { eachDateKey, toDateKey } from "../lib/dates";
+import type { RootTabParamList } from "../navigation/AppNavigator";
+import { getCalculationStartDate, summarizeDay } from "../lib/calculations";
+import { eachDateKey, maxDateKey, toDateKey } from "../lib/dates";
 import { formatMinutes, formatSignedMinutes } from "../lib/time";
 import { AppData, DaySummary } from "../types/app";
 import { colors } from "../theme/colors";
@@ -16,9 +18,9 @@ import { saveProgressCsvToDevice, shareProgressCsv } from "../services/backupSer
 import { useWorkStore } from "../store/workStore";
 
 export function ProgressScreen() {
+  const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const entries = useWorkStore((state) => state.entries);
   const settings = useWorkStore((state) => state.settings);
-  const startNewPeriod = useWorkStore((state) => state.startNewPeriod);
   const data = { entries, settings };
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
@@ -62,6 +64,10 @@ export function ProgressScreen() {
     setSelectedYear(next.getFullYear());
   }
 
+  function openAdjustmentForDate(dateKey: string) {
+    navigation.navigate("Adjustment", { dateKey });
+  }
+
   return (
     <ScreenTemplate eyebrow={monthLabel} title="Progresso">
       <View style={styles.filterRow}>
@@ -87,8 +93,7 @@ export function ProgressScreen() {
         <MetricCard label="Pendencias" tone={totals.missingDays ? "negative" : "neutral"} value={`${totals.missingDays}`} />
       </SummaryGrid>
       <SharePanel onSaveCsv={handleSaveCsv} onShareCsv={handleShareCsv} />
-      <PeriodActions onStartNewPeriod={startNewPeriod} />
-      <ProgressDaysPanel summaries={summaries} title={panelTitle} />
+      <ProgressDaysPanel onDayPress={openAdjustmentForDate} summaries={summaries} title={panelTitle} />
     </ScreenTemplate>
   );
 }
@@ -96,8 +101,14 @@ export function ProgressScreen() {
 function getMonthSummaries(data: AppData, year: number, month: number): DaySummary[] {
   const startKey = toDateKey(new Date(year, month, 1));
   const endKey = toDateKey(new Date(year, month + 1, 0));
+  const calculationStart = getCalculationStartDate(data);
+  const effectiveStart = maxDateKey(startKey, calculationStart);
 
-  return eachDateKey(startKey, endKey).map((dateKey) => summarizeDay(data, dateKey));
+  if (effectiveStart > endKey) {
+    return [];
+  }
+
+  return eachDateKey(effectiveStart, endKey).map((dateKey) => summarizeDay(data, dateKey));
 }
 
 function periodTotalsFromSummaries(summaries: DaySummary[]) {

@@ -2,9 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createEmptyEntry, nextPunchType } from "../lib/calculations";
-import { todayKey } from "../lib/dates";
+import { isValidDateKey, todayKey } from "../lib/dates";
 import { sortPunchEvents } from "../lib/manualEntry";
-import { defaultData } from "../storage/appStorage";
+import { defaultData, normalizeAppData } from "../storage/appStorage";
 import { AppData, WorkEntry } from "../types/app";
 
 type WorkStore = AppData & {
@@ -12,8 +12,8 @@ type WorkStore = AppData & {
   replaceData: (data: AppData) => void;
   setDailyMinutes: (dailyMinutes: number) => void;
   setManualAdjustment: (date: string, adjustmentMinutes: number, note: string) => void;
+  setPeriodStart: (dateKey: string) => void;
   saveEntry: (date: string, entry: WorkEntry) => void;
-  startNewPeriod: () => void;
   toggleWorkday: (day: number) => void;
 };
 
@@ -75,6 +75,19 @@ export const useWorkStore = create<WorkStore>()(
             }
           };
         }),
+      setPeriodStart: (dateKey) =>
+        set((state) => {
+          if (!isValidDateKey(dateKey)) {
+            return {};
+          }
+
+          return {
+            settings: {
+              ...state.settings,
+              periodStart: dateKey
+            }
+          };
+        }),
       saveEntry: (date, entry) =>
         set((state) => ({
           entries: {
@@ -84,13 +97,6 @@ export const useWorkStore = create<WorkStore>()(
               date,
               events: sortPunchEvents(entry.events)
             }
-          }
-        })),
-      startNewPeriod: () =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            periodStart: todayKey()
           }
         })),
       toggleWorkday: (day) =>
@@ -110,6 +116,8 @@ export const useWorkStore = create<WorkStore>()(
     }),
     {
       name: "devhora:work-store:v1",
+      version: 2,
+      migrate: (persistedState) => normalizeAppData(persistedState),
       partialize: (state) => ({
         entries: state.entries,
         settings: state.settings

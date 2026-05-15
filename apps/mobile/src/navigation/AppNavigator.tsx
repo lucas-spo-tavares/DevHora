@@ -7,7 +7,9 @@ import { TodayScreen } from "../screens/TodayScreen";
 import { colors } from "../theme/colors";
 
 export type RootTabParamList = {
-  Adjustment: undefined;
+  Adjustment: {
+    dateKey?: string;
+  } | undefined;
   Progress: undefined;
   Settings: undefined;
   Today: undefined;

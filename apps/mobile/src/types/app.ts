@@ -15,7 +15,10 @@ export type WorkEntry = {
 
 export type Settings = {
   dailyMinutes: number;
+  // Stored as YYYY-MM-DD and used as a lower bound for calculations.
+  installationDate: string;
   workdays: number[];
+  // Stored as YYYY-MM-DD for calculation and backup compatibility.
   periodStart: string;
 };
 
@@ -32,4 +35,3 @@ export type DaySummary = {
   balanceMinutes: number;
   isMissing: boolean;
 };
-

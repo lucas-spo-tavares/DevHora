@@ -1,5 +1,5 @@
 import { AppData, DaySummary, PunchEvent, PunchType, WorkEntry } from "../types/app";
-import { eachDateKey, parseDateKey, todayKey } from "./dates";
+import { eachDateKey, maxDateKey, parseDateKey, todayKey } from "./dates";
 
 export function createEmptyEntry(date: string): WorkEntry {
   return {
@@ -120,8 +120,15 @@ export function summarizeDay(data: AppData, dateKey: string): DaySummary {
   };
 }
 
+export function getCalculationStartDate(data: AppData): string {
+  const configuredStart = data.settings.periodStart;
+  const installationStart = data.settings.installationDate;
+
+  return maxDateKey(configuredStart, installationStart);
+}
+
 export function summarizePeriod(data: AppData): DaySummary[] {
-  const dates = eachDateKey(data.settings.periodStart, todayKey());
+  const dates = eachDateKey(getCalculationStartDate(data), todayKey());
 
   return dates.map((date) => summarizeDay(data, date));
 }
@@ -144,4 +151,3 @@ export function periodTotals(data: AppData) {
     }
   );
 }
-

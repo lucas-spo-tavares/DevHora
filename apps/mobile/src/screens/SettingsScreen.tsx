@@ -1,13 +1,18 @@
 import { Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { BackupPanel } from "../components/organisms/BackupPanel";
 import { DailyHoursPanel } from "../components/organisms/DailyHoursPanel";
+import { NotificationSettingsPanel } from "../components/organisms/NotificationSettingsPanel";
 import { PeriodStartPanel } from "../components/organisms/PeriodStartPanel";
 import { WorkdaysPanel } from "../components/organisms/WorkdaysPanel";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
 import { exportBackup, importBackup } from "../services/backupService";
 import { getAppDataSnapshot, useWorkStore } from "../store/workStore";
+import type { SettingsStackParamList } from "../navigation/SettingsStackNavigator";
 
 export function SettingsScreen() {
+  const navigation = useNavigation<StackNavigationProp<SettingsStackParamList>>();
   const dailyMinutes = useWorkStore((state) => state.settings.dailyMinutes);
   const periodStart = useWorkStore((state) => state.settings.periodStart);
   const replaceData = useWorkStore((state) => state.replaceData);
@@ -48,6 +53,7 @@ export function SettingsScreen() {
       <DailyHoursPanel dailyMinutes={dailyMinutes} onSaveDailyMinutes={setDailyMinutes} />
       <PeriodStartPanel onSavePeriodStart={setPeriodStart} periodStart={periodStart} />
       <WorkdaysPanel onToggleWorkday={toggleWorkday} workdays={workdays} />
+      <NotificationSettingsPanel onPress={() => navigation.navigate("Notifications")} />
       <BackupPanel onExportBackup={handleExportBackup} onImportBackup={handleImportBackup} />
     </ScreenTemplate>
   );

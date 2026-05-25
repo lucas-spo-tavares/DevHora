@@ -2,8 +2,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { BarChart3, Calendar, PencilLine, Settings } from "lucide-react-native";
 import { ManualAdjustmentScreen } from "../screens/ManualAdjustmentScreen";
 import { ProgressScreen } from "../screens/ProgressScreen";
-import { SettingsScreen } from "../screens/SettingsScreen";
 import { TodayScreen } from "../screens/TodayScreen";
+import { SettingsStackNavigator } from "./SettingsStackNavigator";
 import { colors } from "../theme/colors";
 
 export type RootTabParamList = {
@@ -69,10 +69,11 @@ export function AppNavigator() {
         name="Settings"
         options={{
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          unmountOnBlur: true,
           title: "Config"
         }}
       >
-        {() => <SettingsScreen />}
+        {() => <SettingsStackNavigator />}
       </Tab.Screen>
     </Tab.Navigator>
   );

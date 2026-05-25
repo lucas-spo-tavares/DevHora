@@ -88,6 +88,22 @@ export function workedMinutes(events: PunchEvent[]): number {
   return total;
 }
 
+export function getOpenIntervalStart(events: PunchEvent[]): PunchEvent | null {
+  let openStart: PunchEvent | null = null;
+
+  for (const event of events) {
+    if (event.type === "start" || event.type === "pauseEnd") {
+      openStart = event;
+    }
+
+    if (event.type === "pauseStart" || event.type === "end") {
+      openStart = null;
+    }
+  }
+
+  return openStart;
+}
+
 function minutesBetweenSafe(startIso: string, endIso: string): number {
   const start = new Date(startIso).getTime();
   const end = new Date(endIso).getTime();

@@ -5,22 +5,58 @@ import { createEmptyEntry, nextPunchType } from "../lib/calculations";
 import { isValidDateKey, todayKey } from "../lib/dates";
 import { sortPunchEvents } from "../lib/manualEntry";
 import { defaultData, normalizeAppData } from "../storage/appStorage";
-import { AppData, WorkEntry } from "../types/app";
+import {
+  AppData,
+  NotificationAlert,
+  NotificationSettings,
+  SpecialNotificationAlert,
+  SpecialNotificationTarget,
+  WorkEntry
+} from "../types/app";
+
+export type NotificationRuleKey = SpecialNotificationTarget;
 
 type WorkStore = AppData & {
+  addNotificationAlert: (alert: NotificationAlert) => void;
+  addSpecialNotificationAlert: (alert: SpecialNotificationAlert) => void;
   punchToday: () => void;
+  removeNotificationAlert: (alertId: string) => void;
+  removeSpecialNotificationAlert: (alertId: string) => void;
   replaceData: (data: AppData) => void;
+  saveEntry: (date: string, entry: WorkEntry) => void;
   setDailyMinutes: (dailyMinutes: number) => void;
   setManualAdjustment: (date: string, adjustmentMinutes: number, note: string) => void;
+  setNotificationDurationMinutes: (pauseDurationMinutes: number) => void;
   setPeriodStart: (dateKey: string) => void;
-  saveEntry: (date: string, entry: WorkEntry) => void;
   toggleWorkday: (day: number) => void;
+  updateNotificationAlert: (alertId: string, patch: Partial<NotificationAlert>) => void;
+  updateSpecialNotificationAlert: (alertId: string, patch: Partial<SpecialNotificationAlert>) => void;
 };
 
 export const useWorkStore = create<WorkStore>()(
   persist(
     (set) => ({
       ...defaultData,
+      addNotificationAlert: (alert) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              alerts: [...state.settings.notifications.alerts, alert]
+            }
+          }
+        })),
+      addSpecialNotificationAlert: (alert) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              specialAlerts: [...state.settings.notifications.specialAlerts, alert]
+            }
+          }
+        })),
       punchToday: () =>
         set((state) => {
           const date = todayKey();
@@ -48,11 +84,42 @@ export const useWorkStore = create<WorkStore>()(
             }
           };
         }),
+      removeNotificationAlert: (alertId) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              alerts: state.settings.notifications.alerts.filter((alert) => alert.id !== alertId)
+            }
+          }
+        })),
+      removeSpecialNotificationAlert: (alertId) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              specialAlerts: state.settings.notifications.specialAlerts.filter((alert) => alert.id !== alertId)
+            }
+          }
+        })),
       replaceData: (data) =>
         set({
           entries: data.entries,
           settings: data.settings
         }),
+      saveEntry: (date, entry) =>
+        set((state) => ({
+          entries: {
+            ...state.entries,
+            [date]: {
+              ...entry,
+              date,
+              events: sortPunchEvents(entry.events)
+            }
+          }
+        })),
       setDailyMinutes: (dailyMinutes) =>
         set((state) => ({
           settings: {
@@ -75,6 +142,16 @@ export const useWorkStore = create<WorkStore>()(
             }
           };
         }),
+      setNotificationDurationMinutes: (pauseDurationMinutes) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              pauseDurationMinutes
+            }
+          }
+        })),
       setPeriodStart: (dateKey) =>
         set((state) => {
           if (!isValidDateKey(dateKey)) {
@@ -88,17 +165,6 @@ export const useWorkStore = create<WorkStore>()(
             }
           };
         }),
-      saveEntry: (date, entry) =>
-        set((state) => ({
-          entries: {
-            ...state.entries,
-            [date]: {
-              ...entry,
-              date,
-              events: sortPunchEvents(entry.events)
-            }
-          }
-        })),
       toggleWorkday: (day) =>
         set((state) => {
           const exists = state.settings.workdays.includes(day);
@@ -112,11 +178,35 @@ export const useWorkStore = create<WorkStore>()(
               workdays
             }
           };
-        })
+        }),
+      updateNotificationAlert: (alertId, patch) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              alerts: state.settings.notifications.alerts.map((alert) =>
+                alert.id === alertId ? { ...alert, ...patch } : alert
+              )
+            }
+          }
+        })),
+      updateSpecialNotificationAlert: (alertId, patch) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            notifications: {
+              ...state.settings.notifications,
+              specialAlerts: state.settings.notifications.specialAlerts.map((alert) =>
+                alert.id === alertId ? { ...alert, ...patch } : alert
+              )
+            }
+          }
+        }))
     }),
     {
       name: "devhora:work-store:v1",
-      version: 2,
+      version: 5,
       migrate: (persistedState) => normalizeAppData(persistedState),
       partialize: (state) => ({
         entries: state.entries,

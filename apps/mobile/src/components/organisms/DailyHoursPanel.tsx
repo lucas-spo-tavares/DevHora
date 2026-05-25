@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Check, Minus, Plus } from "lucide-react-native";
 import { formatMinutes } from "../../lib/time";
 import { colors } from "../../theme/colors";
 import { IconOnlyButton } from "../atoms/IconOnlyButton";
 import { TextButton } from "../atoms/TextButton";
+import { StepperField } from "../molecules/StepperField";
 import { Panel } from "./Panel";
 
 type DailyHoursPanelProps = {
@@ -41,6 +42,10 @@ export function DailyHoursPanel({ dailyMinutes, onSaveDailyMinutes }: DailyHours
     setDraftMinutes(clampMinutes(nextMinutes));
   }
 
+  function adjustDraftMinutes(delta: number) {
+    setDraftMinutes((current) => clampMinutes(current + delta));
+  }
+
   return (
     <Panel title="Horas por dia">
       <View style={styles.row}>
@@ -60,22 +65,28 @@ export function DailyHoursPanel({ dailyMinutes, onSaveDailyMinutes }: DailyHours
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Horas por dia</Text>
             <Text style={styles.modalHint}>Ajuste com hora e minuto. O máximo permitido é 24 horas.</Text>
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Horas</Text>
-              <View style={styles.stepperRow}>
-                <StepperButton accessibilityLabel="Diminuir horas" onPress={() => setDraftMinutesSafely(draftMinutes - 60)} icon={<Minus size={16} color={colors.primaryText} />} />
-                <Text style={styles.stepperValue}>{formatDurationValue(draftMinutes).hours}</Text>
-                <StepperButton accessibilityLabel="Aumentar horas" onPress={() => setDraftMinutesSafely(draftMinutes + 60)} icon={<Plus size={16} color={colors.primaryText} />} />
-              </View>
-            </View>
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Minutos</Text>
-              <View style={styles.stepperRow}>
-                <StepperButton accessibilityLabel="Diminuir minutos" onPress={() => setDraftMinutesSafely(draftMinutes - 1)} icon={<Minus size={16} color={colors.primaryText} />} />
-                <Text style={styles.stepperValue}>{formatDurationValue(draftMinutes).minutes}</Text>
-                <StepperButton accessibilityLabel="Aumentar minutos" onPress={() => setDraftMinutesSafely(draftMinutes + 1)} icon={<Plus size={16} color={colors.primaryText} />} />
-              </View>
-            </View>
+            <StepperField
+              accessibilityLabelDecrease="Diminuir horas"
+              accessibilityLabelIncrease="Aumentar horas"
+              iconDecrease={<Minus size={16} color={colors.primaryText} />}
+              iconIncrease={<Plus size={16} color={colors.primaryText} />}
+              label="Horas"
+              onDecrease={() => adjustDraftMinutes(-60)}
+              onIncrease={() => adjustDraftMinutes(60)}
+              value={formatDurationValue(draftMinutes).hours}
+            />
+            <StepperField
+              accessibilityLabelDecrease="Diminuir minutos"
+              accessibilityLabelIncrease="Aumentar minutos"
+              iconDecrease={<Minus size={16} color={colors.primaryText} />}
+              iconIncrease={<Plus size={16} color={colors.primaryText} />}
+              label="Minutos"
+              onDecrease={() => adjustDraftMinutes(-1)}
+              onDecreaseHold={() => adjustDraftMinutes(-1)}
+              onIncrease={() => adjustDraftMinutes(1)}
+              onIncreaseHold={() => adjustDraftMinutes(1)}
+              value={formatDurationValue(draftMinutes).minutes}
+            />
             <TextButton label="Definir 8h" onPress={() => setDraftMinutes(8 * 60)} variant="secondary" />
             <View style={styles.modalActions}>
               <TextButton label="Cancelar" onPress={() => setIsPickerOpen(false)} style={styles.modalAction} />
@@ -108,20 +119,6 @@ function formatDurationValue(minutes: number): { hours: string; minutes: string 
     hours: String(hours).padStart(2, "0"),
     minutes: String(restMinutes).padStart(2, "0")
   };
-}
-
-type StepperButtonProps = {
-  accessibilityLabel: string;
-  icon: ReactNode;
-  onPress: () => void;
-};
-
-function StepperButton({ accessibilityLabel, icon, onPress }: StepperButtonProps) {
-  return (
-    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole="button" onPress={onPress} style={styles.stepperButton}>
-      {icon}
-    </Pressable>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -169,37 +166,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 10
-  },
-  section: {
-    gap: 8
-  },
-  sectionLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800"
-  },
-  stepperButton: {
-    alignItems: "center",
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.border,
-    borderRadius: 14,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: "center",
-    width: 40
-  },
-  stepperRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    justifyContent: "space-between"
-  },
-  stepperValue: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "900",
-    minWidth: 52,
-    textAlign: "center"
   },
   value: {
     color: colors.text,

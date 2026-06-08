@@ -2,10 +2,11 @@
   "expo": {
     "name": "DevHora",
     "slug": "devhora",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "devhora",
+    "icon": "./assets/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -16,7 +17,17 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F8FBF4"
+      },
       "package": "com.devhora.app"
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FBFAF5"
     },
     "web": {
       "bundler": "metro"

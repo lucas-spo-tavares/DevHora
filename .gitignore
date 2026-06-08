@@ -5,7 +5,6 @@ node_modules/
 # Expo / React Native
 .expo/
 apps/mobile/.expo/
-apps/mobile/android/
 apps/mobile/ios/
 apps/mobile/web-build/
 expo-env.d.ts
@@ -34,6 +33,7 @@ artifacts/android/*.apk
 *.keystore
 *.p8
 *.p12
+apps/mobile/android/keystore.properties
 
 # Hosting / tooling
 .vercel/

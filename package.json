@@ -9,6 +9,10 @@
     "node": ">=22 <23"
   },
   "packageManager": "npm@10.8.2",
+  "overrides": {
+    "expo": "51.0.39",
+    "expo-modules-core": "1.12.26"
+  },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -19,6 +23,7 @@
     "mobile:web": "npm run web --workspace @devhora/mobile",
     "mobile:build:apk": "npm run build:apk --workspace @devhora/mobile",
     "mobile:build:aab": "npm run build:aab --workspace @devhora/mobile",
+    "mobile:build:local": "./scripts/build-mobile-release.sh aab",
     "landing:dev": "npm run dev --workspace @devhora/landing",
     "landing:build": "npm run build --workspace @devhora/landing",
     "landing:tf:init": "terraform -chdir=infra/terraform/landing init",

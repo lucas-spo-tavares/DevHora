@@ -1,0 +1,52 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+  }
+  includeBuild(
+    new File(
+      ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    ).getParentFile().toString()
+  )
+}
+
+plugins { id("com.facebook.react.settings") }
+
+def expoPackageJsonPath = ["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim()
+def reactNativeCliAndroidPackageJsonPath = ["node", "--print", "require.resolve('@react-native-community/cli-platform-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()
+
+def getRNMinorVersion() {
+  def version = providers.exec {
+    commandLine("node", "-e", "console.log(require('react-native/package.json').version);")
+  }.standardOutput.asText.get().trim()
+
+  def coreVersion = version.split("-")[0]
+  def (major, minor, patch) = coreVersion.tokenize('.').collect { it.toInteger() }
+
+  return minor
+}
+
+rootProject.name = 'DevHora'
+
+dependencyResolutionManagement {
+  versionCatalogs {
+    reactAndroidLibs {
+      from(files(new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), "../gradle/libs.versions.toml")))
+    }
+  }
+}
+
+apply from: new File(expoPackageJsonPath, "../scripts/autolinking.gradle");
+useExpoModules()
+include(":expo-modules-core")
+project(":expo-modules-core").projectDir = new File(expoPackageJsonPath, "../node_modules/expo-modules-core/android")
+
+apply from: new File(reactNativeCliAndroidPackageJsonPath, "../native_modules.gradle");
+applyNativeModulesSettingsGradle(settings)
+
+include ':app'
+includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile())

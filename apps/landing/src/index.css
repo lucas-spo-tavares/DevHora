@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #1d2a20;
+    background:
+      radial-gradient(circle at top left, rgba(220, 232, 208, 0.88), transparent 28%),
+      linear-gradient(180deg, #fbfaf7 0%, #f5f1e7 54%, #eef2e5 100%);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply m-0 min-h-screen overflow-x-hidden bg-paper font-sans text-ink;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply relative overflow-x-hidden overflow-y-visible;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(220, 232, 208, 0.74), transparent 24%),
+      radial-gradient(circle at 84% 12%, rgba(182, 92, 61, 0.14), transparent 16%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(246, 242, 232, 0.96));
+  }
+
+  .section-frame {
+    @apply mx-auto w-full max-w-7xl px-5 md:px-8;
+  }
+
+  .glass-panel {
+    @apply border border-white/60 bg-white/70 shadow-float backdrop-blur;
+  }
+
+  .hero-grid {
+    @apply grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr];
+  }
+
+  .screen-grid {
+    @apply grid gap-5 md:grid-cols-2;
+  }
+
+  .legal-copy p {
+    @apply text-base leading-7 text-ink/80;
+  }
+
+  .legal-copy h2 {
+    @apply mt-10 text-2xl font-semibold text-ink;
+  }
+
+  .legal-copy ul {
+    @apply my-4 list-disc space-y-2 pl-5 text-base leading-7 text-ink/80;
+  }
+}

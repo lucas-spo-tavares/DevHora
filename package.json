@@ -20,7 +20,10 @@
     "mobile:build:apk": "npm run build:apk --workspace @devhora/mobile",
     "mobile:build:aab": "npm run build:aab --workspace @devhora/mobile",
     "landing:dev": "npm run dev --workspace @devhora/landing",
-    "landing:build": "npm run build --workspace @devhora/landing"
+    "landing:build": "npm run build --workspace @devhora/landing",
+    "landing:tf:init": "terraform -chdir=infra/terraform/landing init",
+    "landing:tf:apply": "terraform -chdir=infra/terraform/landing apply",
+    "landing:deploy": "node scripts/deploy-landing.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

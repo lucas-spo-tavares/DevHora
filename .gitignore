@@ -15,6 +15,10 @@ dist/
 build/
 .turbo/
 coverage/
+apps/landing/public/generated/
+.terraform/
+*.tfstate
+*.tfstate.*
 
 # Android artifacts published separately
 artifacts/android/*.apk

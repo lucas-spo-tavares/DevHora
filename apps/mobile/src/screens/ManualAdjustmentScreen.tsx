@@ -150,10 +150,11 @@ export function ManualAdjustmentScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      return () => {
-        loadDay(loadedDateRef.current);
-      };
-    }, [])
+      const targetDate =
+        route.params?.dateKey && isValidDateKey(route.params.dateKey) ? route.params.dateKey : loadedDateRef.current || todayKey();
+
+      loadDay(targetDate);
+    }, [route.params?.dateKey, entries])
   );
 
   function loadDay(targetDate: string) {

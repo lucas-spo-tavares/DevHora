@@ -19,6 +19,7 @@ import com.swmansion.rnscreens.RNScreensPackage
 import com.th3rdwave.safeareacontext.SafeAreaContextPackage
 
 import expo.modules.ApplicationLifecycleDispatcher
+import expo.modules.ExpoModulesPackage
 import expo.modules.ReactNativeHostWrapper
 
 class MainApplication : Application(), ReactApplication {
@@ -34,7 +35,8 @@ class MainApplication : Application(), ReactApplication {
               RNGestureHandlerPackage(),
               SafeAreaContextPackage(),
               RNScreensPackage(),
-              SvgPackage()
+              SvgPackage(),
+              ExpoModulesPackage()
             )
           }
 

@@ -1,4 +1,26 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+def mobileDir = rootDir.parentFile
+
+def findPackageDir = { String packageName ->
+    def relativePath = packageName.split('/').join(File.separator)
+    def searchRoots = [
+        new File(mobileDir, "node_modules"),
+        new File(mobileDir, "node_modules/react-native/node_modules"),
+        new File(mobileDir, "node_modules/expo/node_modules")
+    ]
+
+    for (def searchRoot : searchRoots) {
+        def candidate = new File(searchRoot, relativePath)
+        if (candidate.isDirectory()) {
+            return candidate
+        }
+    }
+
+    throw new GradleException("Nao foi possivel localizar o pacote ${packageName} a partir de ${mobileDir}.")
+}
+
+def reactNativePackagePath = findPackageDir("react-native")
+def jscAndroidPackagePath = findPackageDir("jsc-android")
 
 buildscript {
     ext {
@@ -27,11 +49,11 @@ allprojects {
     repositories {
         maven {
             // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url(new File(['node', '--print', "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), '../android'))
+            url(new File(reactNativePackagePath, 'android'))
         }
         maven {
             // Android JSC is installed from npm
-            url(new File(['node', '--print', "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), '../dist'))
+            url(new File(jscAndroidPackagePath, 'dist'))
         }
 
         google()

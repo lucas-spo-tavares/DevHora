@@ -15,13 +15,31 @@ artifacts/
 ## Comandos principais
 
 ```sh
+npm install
 npm run mobile:start
 npm run mobile:android
 npm run mobile:build:apk
+npm run mobile:build:local
 npm run landing:dev
 npm run landing:build
 npm run typecheck
 npm run build
+```
+
+## Node modules por app
+
+O monorepo esta configurado para instalar dependencias de cada workspace no proprio diretorio:
+
+```text
+apps/mobile/node_modules
+apps/landing/node_modules
+```
+
+Para aplicar essa estrutura depois de trocar a estrategia do npm, limpe a instalacao anterior e rode novamente:
+
+```sh
+rm -rf node_modules apps/mobile/node_modules apps/landing/node_modules package-lock.json
+npm install
 ```
 
 ## Publicar APK na landing

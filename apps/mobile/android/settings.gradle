@@ -4,25 +4,39 @@ pluginManagement {
     google()
     mavenCentral()
   }
-  includeBuild(
-    new File(
-      ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
-        .execute(null, rootDir)
-        .text
-        .trim()
-    ).getParentFile().toString()
-  )
+  includeBuild(new File(rootDir, "../node_modules/react-native/node_modules/@react-native/gradle-plugin").toString())
 }
 
 plugins { id("com.facebook.react.settings") }
 
-def expoPackageJsonPath = ["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim()
-def reactNativeCliAndroidPackageJsonPath = ["node", "--print", "require.resolve('@react-native-community/cli-platform-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()
+import groovy.json.JsonSlurper
+
+def mobileDir = rootDir.parentFile
+
+def findPackageDir = { String packageName ->
+  def relativePath = packageName.split('/').join(File.separator)
+  def searchRoots = [
+    new File(mobileDir, "node_modules"),
+    new File(mobileDir, "node_modules/react-native/node_modules"),
+    new File(mobileDir, "node_modules/expo/node_modules")
+  ]
+
+  for (def searchRoot : searchRoots) {
+    def candidate = new File(searchRoot, relativePath)
+    if (candidate.isDirectory()) {
+      return candidate
+    }
+  }
+
+  throw new GradleException("Nao foi possivel localizar o pacote ${packageName} a partir de ${mobileDir}.")
+}
+
+def reactNativePackagePath = findPackageDir("react-native")
+def reactNativeGradlePluginPath = findPackageDir("@react-native/gradle-plugin")
+def expoPackagePath = findPackageDir("expo")
 
 def getRNMinorVersion() {
-  def version = providers.exec {
-    commandLine("node", "-e", "console.log(require('react-native/package.json').version);")
-  }.standardOutput.asText.get().trim()
+  def version = new JsonSlurper().parse(new File(reactNativePackagePath, "package.json")).version
 
   def coreVersion = version.split("-")[0]
   def (major, minor, patch) = coreVersion.tokenize('.').collect { it.toInteger() }
@@ -35,18 +49,31 @@ rootProject.name = 'DevHora'
 dependencyResolutionManagement {
   versionCatalogs {
     reactAndroidLibs {
-      from(files(new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), "../gradle/libs.versions.toml")))
+      from(files(new File(reactNativePackagePath, "gradle/libs.versions.toml")))
     }
   }
 }
 
-apply from: new File(expoPackageJsonPath, "../scripts/autolinking.gradle");
+apply from: new File(expoPackagePath, "scripts/autolinking.gradle");
 useExpoModules()
-include(":expo-modules-core")
-project(":expo-modules-core").projectDir = new File(expoPackageJsonPath, "../node_modules/expo-modules-core/android")
 
-apply from: new File(reactNativeCliAndroidPackageJsonPath, "../native_modules.gradle");
-applyNativeModulesSettingsGradle(settings)
+include(":react-native-async-storage_async-storage")
+project(":react-native-async-storage_async-storage").projectDir = new File(findPackageDir("@react-native-async-storage/async-storage"), "android")
+
+include(":react-native-community_datetimepicker")
+project(":react-native-community_datetimepicker").projectDir = new File(findPackageDir("@react-native-community/datetimepicker"), "android")
+
+include(":react-native-gesture-handler")
+project(":react-native-gesture-handler").projectDir = new File(findPackageDir("react-native-gesture-handler"), "android")
+
+include(":react-native-safe-area-context")
+project(":react-native-safe-area-context").projectDir = new File(findPackageDir("react-native-safe-area-context"), "android")
+
+include(":react-native-screens")
+project(":react-native-screens").projectDir = new File(findPackageDir("react-native-screens"), "android")
+
+include(":react-native-svg")
+project(":react-native-svg").projectDir = new File(findPackageDir("react-native-svg"), "android")
 
 include ':app'
-includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile())
+includeBuild(reactNativeGradlePluginPath)

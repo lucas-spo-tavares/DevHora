@@ -4,10 +4,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOBILE_DIR="$ROOT_DIR/apps/mobile"
-ANDROID_DIR="$ROOT_DIR/apps/mobile/android"
 ARTIFACT="${1:-aab}"
 EXPECTED_EXPO_MAJOR="51"
-
+EAS_PROFILE=""
 INSTALLED_EXPO_VERSION="$(
   node -p "try { require('$MOBILE_DIR/node_modules/expo/package.json').version } catch { '' }" 2>/dev/null
 )"
@@ -30,12 +29,10 @@ fi
 
 case "$ARTIFACT" in
   aab)
-    TASK="bundleRelease"
-    OUTPUT_RELATIVE="app/build/outputs/bundle/release/app-release.aab"
+    EAS_PROFILE="production"
     ;;
   apk)
-    TASK="assembleRelease"
-    OUTPUT_RELATIVE="app/build/outputs/apk/release/app-release.apk"
+    EAS_PROFILE="preview"
     ;;
   *)
     echo "Uso: ./scripts/build-mobile-release.sh [aab|apk]"
@@ -43,12 +40,13 @@ case "$ARTIFACT" in
     ;;
 esac
 
-echo "Gerando $ARTIFACT com Gradle local..."
-echo "Diretorio Android: $ANDROID_DIR"
+echo "Gerando $ARTIFACT com EAS local..."
+echo "Diretorio do app: $MOBILE_DIR"
+echo "Perfil EAS: $EAS_PROFILE"
 
-cd "$ANDROID_DIR"
-./gradlew "$TASK"
+cd "$MOBILE_DIR"
+npx eas-cli build --platform android --profile "$EAS_PROFILE" --local
 
 echo
 echo "Build finalizado."
-echo "Artefato: $ANDROID_DIR/$OUTPUT_RELATIVE"
+echo "Confira o caminho do artefato no resumo do EAS CLI."

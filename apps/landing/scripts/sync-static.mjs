@@ -7,12 +7,15 @@ const landingRoot = path.resolve(scriptDir, "..");
 const repoRoot = path.resolve(landingRoot, "..", "..");
 const publicRoot = path.join(landingRoot, "public");
 const generatedRoot = path.join(publicRoot, "generated");
+const socialPreviewSource = path.join(repoRoot, "apps", "mobile", "assets", "play-store-feature-graphic.png");
+const socialPreviewTarget = path.join(publicRoot, "social-preview.png");
 const screenshotsSource = path.join(repoRoot, "screenshots");
 const screenshotsTarget = path.join(generatedRoot, "screenshots");
 const downloadTarget = path.join(generatedRoot, "downloads");
 
 const apkCandidates = [
   process.env.DEVHORA_APK_PATH,
+  path.join(repoRoot, "apps", "mobile", "android", "app", "build", "outputs", "apk", "release", "app-release.apk"),
   path.join(repoRoot, "artifacts", "android", "devhora-latest.apk"),
   path.join(repoRoot, "apps", "mobile", "dist", "devhora-latest.apk")
 ].filter(Boolean);
@@ -30,6 +33,7 @@ await mkdir(publicRoot, { recursive: true });
 await rm(generatedRoot, { recursive: true, force: true });
 await mkdir(screenshotsTarget, { recursive: true });
 await mkdir(downloadTarget, { recursive: true });
+await cp(socialPreviewSource, socialPreviewTarget);
 
 let hasScreenshots = false;
 if (await exists(screenshotsSource)) {

@@ -41,4 +41,4 @@ const bucketName = capture("terraform", ["-chdir=" + terraformDir, "output", "-r
 const distributionId = capture("terraform", ["-chdir=" + terraformDir, "output", "-raw", "cloudfront_distribution_id"]);
 
 run("aws", ["s3", "sync", landingDistDir, `s3://${bucketName}`, "--delete"]);
-run("aws", ["cloudfront", "create-invalidation", "--distribution-id", distributionId, "--paths", "/*"]);
+run("aws", ["cloudfront", "create-invalidation", "--no-cli-pager", "--distribution-id", distributionId, "--paths", "/*"]);

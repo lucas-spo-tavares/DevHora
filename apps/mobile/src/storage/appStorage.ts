@@ -1,4 +1,12 @@
-import { AppData, NotificationAlert, NotificationRule, NotificationSettings, SpecialNotificationAlert, SpecialNotificationTarget } from "../types/app";
+import {
+  AppData,
+  NotificationAlert,
+  NotificationRule,
+  NotificationSettings,
+  SpecialNotificationAlert,
+  SpecialNotificationTarget,
+  WorkEntry
+} from "../types/app";
 import { isValidDateKey, todayKey } from "../lib/dates";
 import { isValidTimeOfDay } from "../lib/timeOfDay";
 
@@ -147,7 +155,7 @@ function normalizeLegacySpecialAlerts(
 }
 
 function defaultSpecialLabel(target: SpecialNotificationTarget): string {
-  return target === "returnReminder" ? "Voltar do almoço" : "Fim de expediente";
+  return target === "returnReminder" ? "Voltar da pausa" : "Fim de expediente";
 }
 
 function normalizeAlert(value: Partial<NotificationAlert> | undefined): NotificationAlert | null {
@@ -179,14 +187,37 @@ export function normalizeAppData(value: unknown): AppData {
   const candidate = value as Partial<AppData>;
 
   return {
-    entries:
-      candidate.entries && typeof candidate.entries === "object"
-        ? candidate.entries
-        : defaultData.entries,
+    entries: normalizeEntries(candidate.entries),
     settings: normalizeSettings(candidate.settings)
   };
 }
 
 export function sanitizeAppData(value: unknown): AppData {
   return normalizeAppData(value);
+}
+
+function normalizeEntries(value: unknown): Record<string, WorkEntry> {
+  if (!value || typeof value !== "object") {
+    return defaultData.entries;
+  }
+
+  return Object.entries(value).reduce<Record<string, WorkEntry>>((acc, [dateKey, rawEntry]) => {
+    if (!isValidDateKey(dateKey) || !rawEntry || typeof rawEntry !== "object") {
+      return acc;
+    }
+
+    const candidate = rawEntry as Partial<WorkEntry>;
+    const events = Array.isArray(candidate.events) ? candidate.events : [];
+    const adjustmentMinutes = typeof candidate.adjustmentMinutes === "number" ? candidate.adjustmentMinutes : null;
+
+    acc[dateKey] = {
+      adjustmentMinutes: adjustmentMinutes !== null && Number.isFinite(adjustmentMinutes) ? Math.round(adjustmentMinutes) : 0,
+      date: typeof candidate.date === "string" && isValidDateKey(candidate.date) ? candidate.date : dateKey,
+      events,
+      excludeFromBalance: typeof candidate.excludeFromBalance === "boolean" ? candidate.excludeFromBalance : false,
+      note: typeof candidate.note === "string" ? candidate.note : ""
+    };
+
+    return acc;
+  }, {});
 }

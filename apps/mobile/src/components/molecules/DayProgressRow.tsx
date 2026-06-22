@@ -11,13 +11,14 @@ type DayProgressRowProps = {
 
 export function DayProgressRow({ day, onPress }: DayProgressRowProps) {
   const weekday = weekdayLabel(parseDateKey(day.date).getDay());
+  const metaLabel = day.excludeFromBalance ? "Dia abatido do saldo" : day.isMissing ? "Ponto pendente" : "Saldo do dia";
 
   if (onPress) {
     return (
       <Pressable accessibilityRole="button" onPress={() => onPress(day.date)} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
         <View>
           <Text style={styles.title}>{`${weekday} · ${formatDateLabel(day.date)}`}</Text>
-          <Text style={styles.meta}>{day.isMissing ? "Ponto pendente" : "Saldo do dia"}</Text>
+          <Text style={styles.meta}>{metaLabel}</Text>
         </View>
         <Text style={[styles.balance, day.balanceMinutes >= 0 ? styles.positive : styles.negative]}>
           {formatSignedMinutes(day.balanceMinutes)}
@@ -30,7 +31,7 @@ export function DayProgressRow({ day, onPress }: DayProgressRowProps) {
     <View style={styles.row}>
       <View>
         <Text style={styles.title}>{`${weekday} · ${formatDateLabel(day.date)}`}</Text>
-        <Text style={styles.meta}>{day.isMissing ? "Ponto pendente" : "Saldo do dia"}</Text>
+        <Text style={styles.meta}>{metaLabel}</Text>
       </View>
       <Text style={[styles.balance, day.balanceMinutes >= 0 ? styles.positive : styles.negative]}>
         {formatSignedMinutes(day.balanceMinutes)}

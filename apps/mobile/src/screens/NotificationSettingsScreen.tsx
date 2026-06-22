@@ -41,7 +41,6 @@ export function NotificationSettingsScreen() {
   const addSpecialNotificationAlert = useWorkStore((state) => state.addSpecialNotificationAlert);
   const removeNotificationAlert = useWorkStore((state) => state.removeNotificationAlert);
   const removeSpecialNotificationAlert = useWorkStore((state) => state.removeSpecialNotificationAlert);
-  const setNotificationDurationMinutes = useWorkStore((state) => state.setNotificationDurationMinutes);
   const updateNotificationAlert = useWorkStore((state) => state.updateNotificationAlert);
   const updateSpecialNotificationAlert = useWorkStore((state) => state.updateSpecialNotificationAlert);
 
@@ -93,7 +92,7 @@ export function NotificationSettingsScreen() {
         : {
             enabled: true,
             id: null,
-            label: target === "returnReminder" ? "Lembrete de almoço" : "Lembrete de expediente",
+            label: target === "returnReminder" ? "Lembrete de pausa" : "Lembrete de expediente",
             leadMinutes: target === "returnReminder" ? "10" : "10",
             target
           }
@@ -250,7 +249,7 @@ export function NotificationSettingsScreen() {
       title="Notificacoes"
     >
       <Text style={styles.helperText}>
-        Você pode criar alertas livres por horário e também vários lembretes especiais para almoço e fim de
+        Você pode criar alertas livres por horário e também vários lembretes especiais para pausas e fim de
         expediente.
       </Text>
 
@@ -289,18 +288,18 @@ export function NotificationSettingsScreen() {
         ))
       )}
 
-      <Panel title="Almoço">
+      <Panel title="Pausas">
         <View style={styles.groupHeader}>
           <RotateCcw color={colors.primary} size={18} />
-          <Text style={styles.groupTitle}>Lembretes para voltar do almoço</Text>
+          <Text style={styles.groupTitle}>Lembretes para voltar da pausa</Text>
         </View>
         <Text style={styles.groupHint}>Você pode criar mais de um, por exemplo 20 e 10 minutos antes.</Text>
         <Pressable onPress={() => openSpecialAlertEditor("returnReminder")} style={styles.groupAddButton}>
           <Plus color={colors.primaryText} size={18} />
-          <Text style={styles.groupAddText}>Adicionar lembrete de almoço</Text>
+          <Text style={styles.groupAddText}>Adicionar lembrete de pausa</Text>
         </Pressable>
         {lunchAlerts.length === 0 ? (
-          <Text style={styles.emptyState}>Nenhum lembrete de almoço criado ainda.</Text>
+          <Text style={styles.emptyState}>Nenhum lembrete de pausa criado ainda.</Text>
         ) : (
           lunchAlerts.map((alert) => (
             <NotificationSpecialAlertCard

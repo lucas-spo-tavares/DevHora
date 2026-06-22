@@ -18,6 +18,7 @@ export type NotificationRuleKey = SpecialNotificationTarget;
 
 type WorkStore = AppData & {
   addNotificationAlert: (alert: NotificationAlert) => void;
+  addPunchEventToday: (type: WorkEntry["events"][number]["type"]) => void;
   addSpecialNotificationAlert: (alert: SpecialNotificationAlert) => void;
   punchToday: () => void;
   removeNotificationAlert: (alertId: string) => void;
@@ -25,7 +26,6 @@ type WorkStore = AppData & {
   replaceData: (data: AppData) => void;
   saveEntry: (date: string, entry: WorkEntry) => void;
   setDailyMinutes: (dailyMinutes: number) => void;
-  setManualAdjustment: (date: string, adjustmentMinutes: number, note: string) => void;
   setNotificationDurationMinutes: (pauseDurationMinutes: number) => void;
   setPeriodStart: (dateKey: string) => void;
   toggleWorkday: (day: number) => void;
@@ -47,6 +47,28 @@ export const useWorkStore = create<WorkStore>()(
             }
           }
         })),
+      addPunchEventToday: (type) =>
+        set((state) => {
+          const date = todayKey();
+          const entry = state.entries[date] ?? createEmptyEntry(date);
+
+          return {
+            entries: {
+              ...state.entries,
+              [date]: {
+                ...entry,
+                events: [
+                  ...entry.events,
+                  {
+                    id: `${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    type
+                  }
+                ]
+              }
+            }
+          };
+        }),
       addSpecialNotificationAlert: (alert) =>
         set((state) => ({
           settings: {
@@ -127,21 +149,6 @@ export const useWorkStore = create<WorkStore>()(
             dailyMinutes
           }
         })),
-      setManualAdjustment: (date, adjustmentMinutes, note) =>
-        set((state) => {
-          const entry = state.entries[date] ?? createEmptyEntry(date);
-
-          return {
-            entries: {
-              ...state.entries,
-              [date]: {
-                ...entry,
-                adjustmentMinutes,
-                note
-              }
-            }
-          };
-        }),
       setNotificationDurationMinutes: (pauseDurationMinutes) =>
         set((state) => ({
           settings: {
@@ -206,7 +213,7 @@ export const useWorkStore = create<WorkStore>()(
     }),
     {
       name: "devhora:work-store:v1",
-      version: 5,
+      version: 6,
       migrate: (persistedState) => normalizeAppData(persistedState),
       partialize: (state) => ({
         entries: state.entries,

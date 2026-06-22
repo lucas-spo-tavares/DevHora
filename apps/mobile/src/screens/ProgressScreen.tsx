@@ -83,14 +83,18 @@ export function ProgressScreen() {
         </Pressable>
       </View>
       <SummaryGrid>
-        <MetricCard label="Feito" value={formatMinutes(totals.workedMinutes)} />
+        <MetricCard label="Horas trabalhadas" value={formatMinutes(totals.workedMinutes)} />
         <MetricCard label="Previsto" value={formatMinutes(totals.expectedMinutes)} />
         <MetricCard
-          label="Banco"
+          label="Saldo"
           tone={totals.balanceMinutes >= 0 ? "positive" : "negative"}
           value={formatSignedMinutes(totals.balanceMinutes)}
         />
-        <MetricCard label="Pendencias" tone={totals.missingDays ? "negative" : "neutral"} value={`${totals.missingDays}`} />
+        <MetricCard
+          label="Dias incompletos"
+          tone={totals.missingDays ? "negative" : "neutral"}
+          value={`${totals.missingDays}`}
+        />
       </SummaryGrid>
       <SharePanel onSaveCsv={handleSaveCsv} onShareCsv={handleShareCsv} />
       <ProgressDaysPanel onDayPress={openAdjustmentForDate} summaries={summaries} title={panelTitle} />
@@ -117,7 +121,7 @@ function periodTotalsFromSummaries(summaries: DaySummary[]) {
       balanceMinutes: totals.balanceMinutes + day.balanceMinutes,
       expectedMinutes: totals.expectedMinutes + day.expectedMinutes,
       missingDays: totals.missingDays + (day.isMissing ? 1 : 0),
-      workedMinutes: totals.workedMinutes + day.workedMinutes + day.adjustmentMinutes
+      workedMinutes: totals.workedMinutes + day.workedMinutes
     }),
     {
       balanceMinutes: 0,

@@ -111,7 +111,7 @@ function buildProgressCsv(data: AppData, summaries: DaySummary[]): { contents: s
       balanceMinutes: acc.balanceMinutes + day.balanceMinutes,
       expectedMinutes: acc.expectedMinutes + day.expectedMinutes,
       missingDays: acc.missingDays + (day.isMissing ? 1 : 0),
-      workedMinutes: acc.workedMinutes + day.workedMinutes + day.adjustmentMinutes
+      workedMinutes: acc.workedMinutes + day.workedMinutes
     }),
     {
       balanceMinutes: 0,
@@ -131,12 +131,11 @@ function buildProgressCsv(data: AppData, summaries: DaySummary[]): { contents: s
       "eventos",
       "previsto_min",
       "trabalhado_min",
-      "ajuste_min",
       "saldo_min",
       "pendente"
     ].join(","),
     ...summaries.map((day) =>
-      buildDayCsvRow(data, day.date, day.expectedMinutes, day.workedMinutes, day.adjustmentMinutes, day.balanceMinutes, day.isMissing)
+      buildDayCsvRow(data, day.date, day.expectedMinutes, day.workedMinutes, day.balanceMinutes, day.isMissing)
     ),
     [
       "TOTAL",
@@ -148,7 +147,6 @@ function buildProgressCsv(data: AppData, summaries: DaySummary[]): { contents: s
       "",
       totals.expectedMinutes,
       totals.workedMinutes,
-      0,
       totals.balanceMinutes,
       totals.missingDays
     ]
@@ -167,7 +165,6 @@ function buildDayCsvRow(
   dateKey: string,
   expectedMinutes: number,
   workedMinutes: number,
-  adjustmentMinutes: number,
   balanceMinutes: number,
   isMissing: boolean
 ): string {
@@ -184,7 +181,6 @@ function buildDayCsvRow(
     formatEventSequence(events),
     expectedMinutes,
     workedMinutes,
-    adjustmentMinutes,
     balanceMinutes,
     isMissing ? "sim" : "nao"
   ];

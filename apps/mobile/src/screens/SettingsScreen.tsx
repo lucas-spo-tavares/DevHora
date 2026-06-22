@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { BackupPanel } from "../components/organisms/BackupPanel";
 import { DailyHoursPanel } from "../components/organisms/DailyHoursPanel";
+import { LunchBreakPanel } from "../components/organisms/LunchBreakPanel";
 import { NotificationSettingsPanel } from "../components/organisms/NotificationSettingsPanel";
 import { PeriodStartPanel } from "../components/organisms/PeriodStartPanel";
 import { PrivacyPolicyPanel } from "../components/organisms/PrivacyPolicyPanel";
@@ -20,6 +21,8 @@ export function SettingsScreen() {
   const periodStart = useWorkStore((state) => state.settings.periodStart);
   const replaceData = useWorkStore((state) => state.replaceData);
   const setDailyMinutes = useWorkStore((state) => state.setDailyMinutes);
+  const pauseDurationMinutes = useWorkStore((state) => state.settings.notifications.pauseDurationMinutes);
+  const setNotificationDurationMinutes = useWorkStore((state) => state.setNotificationDurationMinutes);
   const setPeriodStart = useWorkStore((state) => state.setPeriodStart);
   const toggleWorkday = useWorkStore((state) => state.toggleWorkday);
   const workdays = useWorkStore((state) => state.settings.workdays);
@@ -68,6 +71,10 @@ export function SettingsScreen() {
   return (
     <ScreenTemplate eyebrow="Regras do calculo" title="Configuracoes">
       <DailyHoursPanel dailyMinutes={dailyMinutes} onSaveDailyMinutes={setDailyMinutes} />
+      <LunchBreakPanel
+        onSavePauseDurationMinutes={setNotificationDurationMinutes}
+        pauseDurationMinutes={pauseDurationMinutes}
+      />
       <PeriodStartPanel onSavePeriodStart={setPeriodStart} periodStart={periodStart} />
       <WorkdaysPanel onToggleWorkday={toggleWorkday} workdays={workdays} />
       <NotificationSettingsPanel onPress={() => navigation.navigate("Notifications")} />

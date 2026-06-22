@@ -20,6 +20,19 @@ type ScheduledNotificationData = {
   rule: string;
 };
 
+function buildNotificationContent(
+  title: string,
+  body: string,
+  data: ScheduledNotificationData
+): Notifications.NotificationContentInput {
+  return {
+    body,
+    data,
+    title,
+    ...(Platform.OS === "android" ? { channelId: NOTIFICATION_CHANNEL_ID } : {})
+  };
+}
+
 export async function configureNotificationSystem() {
   if (Platform.OS === "web" || isConfigured) {
     return;
@@ -118,15 +131,11 @@ async function scheduleGenericAlerts(alerts: Settings["notifications"]["alerts"]
       }
 
       await Notifications.scheduleNotificationAsync({
-        content: {
-          body: alert.label,
-          data: {
-            alertId: alert.id,
-            kind: NOTIFICATION_KIND,
-            rule: "generic"
-          } satisfies ScheduledNotificationData,
-          title: "Lembrete"
-        },
+        content: buildNotificationContent("Lembrete", alert.label, {
+          alertId: alert.id,
+          kind: NOTIFICATION_KIND,
+          rule: "generic"
+        }),
         trigger: {
           hour: Math.floor(minutes / 60),
           minute: minutes % 60,
@@ -159,30 +168,29 @@ async function scheduleReturnAlert(
   events: PunchEvent[],
   pauseDurationMinutes: number
 ) {
-  const lastEvent = events.at(-1);
+  const pauseStart = getOpenPauseStart(events);
 
-  if (lastEvent?.type !== "pauseStart" || pauseDurationMinutes <= 0) {
+  if (!pauseStart || pauseDurationMinutes <= 0) {
     return;
   }
 
-  const startDate = new Date(lastEvent.timestamp);
-  const triggerDate = new Date(startDate.getTime() + (pauseDurationMinutes - alert.leadMinutes) * 60_000);
+  const pauseStartedAt = new Date(pauseStart.timestamp).getTime();
+  const pauseElapsedMinutes = Math.max(0, Math.round((Date.now() - pauseStartedAt) / 60_000));
+  const minutesUntilReminder = pauseDurationMinutes - alert.leadMinutes - pauseElapsedMinutes;
 
-  if (triggerDate.getTime() <= Date.now()) {
+  if (minutesUntilReminder < 0) {
     return;
   }
 
   await Notifications.scheduleNotificationAsync({
-    content: {
-      body: alert.label,
-      data: {
-        alertId: alert.id,
-        kind: NOTIFICATION_KIND,
-        rule: "returnReminder"
-      } satisfies ScheduledNotificationData,
-      title: "Voltar do almoço"
+    content: buildNotificationContent("Voltar da pausa", alert.label, {
+      alertId: alert.id,
+      kind: NOTIFICATION_KIND,
+      rule: "returnReminder"
+    }),
+    trigger: {
+      seconds: Math.max(1, minutesUntilReminder * 60)
     },
-    trigger: triggerDate
   });
 }
 
@@ -204,18 +212,31 @@ async function scheduleOvertimeAlert(alert: SpecialNotificationAlert, events: Pu
     return;
   }
 
-  const triggerDate = new Date(Date.now() + remainingToReminder * 60_000);
-
   await Notifications.scheduleNotificationAsync({
-    content: {
-      body: alert.label,
-      data: {
-        alertId: alert.id,
-        kind: NOTIFICATION_KIND,
-        rule: "overtimeReminder"
-      } satisfies ScheduledNotificationData,
-      title: "Evitar hora extra"
+    content: buildNotificationContent("Evitar hora extra", alert.label, {
+      alertId: alert.id,
+      kind: NOTIFICATION_KIND,
+      rule: "overtimeReminder"
+    }),
+    trigger: {
+      seconds: remainingToReminder * 60
     },
-    trigger: triggerDate
   });
+}
+
+function getOpenPauseStart(events: PunchEvent[]): PunchEvent | null {
+  let openPauseStart: PunchEvent | null = null;
+
+  for (const event of events) {
+    if (event.type === "pauseStart") {
+      openPauseStart = event;
+      continue;
+    }
+
+    if (event.type === "pauseEnd" || event.type === "end") {
+      openPauseStart = null;
+    }
+  }
+
+  return openPauseStart;
 }

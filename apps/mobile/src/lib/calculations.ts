@@ -6,6 +6,7 @@ export function createEmptyEntry(date: string): WorkEntry {
     date,
     events: [],
     adjustmentMinutes: 0,
+    excludeFromBalance: false,
     note: ""
   };
 }
@@ -30,6 +31,10 @@ export function nextPunchType(events: PunchEvent[]): PunchType | null {
   }
 
   return null;
+}
+
+export function canStartExtraPause(events: PunchEvent[]): boolean {
+  return events.at(-1)?.type === "pauseEnd";
 }
 
 export function actionLabel(type: PunchType | null): string {
@@ -117,21 +122,19 @@ export function isWorkday(dateKey: string, workdays: number[]): boolean {
 
 export function summarizeDay(data: AppData, dateKey: string): DaySummary {
   const entry = data.entries[dateKey] ?? createEmptyEntry(dateKey);
-  const expectedMinutes = isWorkday(dateKey, data.settings.workdays)
-    ? data.settings.dailyMinutes
-    : 0;
+  const expectedMinutes = !entry.excludeFromBalance && isWorkday(dateKey, data.settings.workdays) ? data.settings.dailyMinutes : 0;
   const worked = workedMinutes(entry.events);
-  const adjustment = entry.adjustmentMinutes;
   const ended = entry.events.at(-1)?.type === "end";
   const isPast = dateKey < todayKey();
-  const isMissing = expectedMinutes > 0 && isPast && (!entry.events.length || !ended);
+  const isMissing = !entry.excludeFromBalance && expectedMinutes > 0 && isPast && (!entry.events.length || !ended);
 
   return {
     date: dateKey,
     expectedMinutes,
     workedMinutes: worked,
-    adjustmentMinutes: adjustment,
-    balanceMinutes: worked + adjustment - expectedMinutes,
+    adjustmentMinutes: 0,
+    balanceMinutes: worked - expectedMinutes,
+    excludeFromBalance: entry.excludeFromBalance,
     isMissing
   };
 }
@@ -155,7 +158,7 @@ export function periodTotals(data: AppData) {
   return days.reduce(
     (totals, day) => ({
       expectedMinutes: totals.expectedMinutes + day.expectedMinutes,
-      workedMinutes: totals.workedMinutes + day.workedMinutes + day.adjustmentMinutes,
+      workedMinutes: totals.workedMinutes + day.workedMinutes,
       balanceMinutes: totals.balanceMinutes + day.balanceMinutes,
       missingDays: totals.missingDays + (day.isMissing ? 1 : 0)
     }),

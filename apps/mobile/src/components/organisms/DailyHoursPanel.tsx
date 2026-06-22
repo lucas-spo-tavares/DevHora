@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { Check, Minus, Plus } from "lucide-react-native";
+import { Minus, Plus } from "lucide-react-native";
 import { formatMinutes } from "../../lib/time";
 import { colors } from "../../theme/colors";
-import { IconOnlyButton } from "../atoms/IconOnlyButton";
 import { TextButton } from "../atoms/TextButton";
 import { StepperField } from "../molecules/StepperField";
 import { Panel } from "./Panel";
@@ -52,11 +51,6 @@ export function DailyHoursPanel({ dailyMinutes, onSaveDailyMinutes }: DailyHours
         <Pressable onPress={openDurationPicker} style={styles.durationButton}>
           <Text style={styles.value}>{formatMinutes(dailyMinutes)}</Text>
         </Pressable>
-        <IconOnlyButton
-          accessibilityLabel="Salvar horas por dia"
-          icon={<Check size={20} color={colors.primaryText} />}
-          onPress={saveDailyHours}
-        />
       </View>
 
       <Modal animationType="fade" onRequestClose={() => setIsPickerOpen(false)} transparent visible={isPickerOpen}>

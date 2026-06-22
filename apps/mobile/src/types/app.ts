@@ -10,6 +10,7 @@ export type WorkEntry = {
   date: string;
   events: PunchEvent[];
   adjustmentMinutes: number;
+  excludeFromBalance: boolean;
   note: string;
 };
 
@@ -62,5 +63,6 @@ export type DaySummary = {
   workedMinutes: number;
   adjustmentMinutes: number;
   balanceMinutes: number;
+  excludeFromBalance: boolean;
   isMissing: boolean;
 };

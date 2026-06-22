@@ -1,21 +1,26 @@
+import { Coffee } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MetricCard } from "../components/molecules/MetricCard";
 import { StatusPanel } from "../components/molecules/StatusPanel";
 import { PunchAction } from "../components/organisms/PunchAction";
 import { SummaryGrid } from "../components/organisms/SummaryGrid";
 import { TodayEventsPanel } from "../components/organisms/TodayEventsPanel";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
-import { createEmptyEntry, nextPunchType, periodTotals, summarizeDay } from "../lib/calculations";
+import { canStartExtraPause, createEmptyEntry, nextPunchType, periodTotals, summarizeDay } from "../lib/calculations";
 import { formatLongDate, todayKey } from "../lib/dates";
 import { formatSignedMinutes } from "../lib/time";
 import { useWorkStore } from "../store/workStore";
+import { colors } from "../theme/colors";
 
 export function TodayScreen() {
+  const addPunchEventToday = useWorkStore((state) => state.addPunchEventToday);
   const entries = useWorkStore((state) => state.entries);
   const settings = useWorkStore((state) => state.settings);
   const punchToday = useWorkStore((state) => state.punchToday);
   const data = { entries, settings };
   const date = todayKey();
   const entry = data.entries[date] ?? createEmptyEntry(date);
+  const extraPauseEnabled = canStartExtraPause(entry.events);
   const nextAction = nextPunchType(entry.events);
   const todaySummary = summarizeDay(data, date);
   const totals = periodTotals(data);
@@ -23,7 +28,23 @@ export function TodayScreen() {
   return (
     <ScreenTemplate eyebrow={formatLongDate(date)} title="Hoje">
       <StatusPanel events={entry.events} />
-      <PunchAction nextAction={nextAction} onPunch={punchToday} />
+      <View style={styles.actionRow}>
+        <View style={styles.actionSpacer} />
+        <PunchAction nextAction={nextAction} onPunch={punchToday} />
+        <Pressable
+          accessibilityRole="button"
+          disabled={!extraPauseEnabled}
+          onPress={() => addPunchEventToday("pauseStart")}
+          style={({ pressed }) => [
+            styles.pauseButton,
+            !extraPauseEnabled && styles.pauseButtonDisabled,
+            pressed && extraPauseEnabled && styles.pauseButtonPressed
+          ]}
+        >
+          <Coffee color={extraPauseEnabled ? colors.primaryText : colors.muted} size={22} />
+          <Text style={[styles.pauseButtonText, !extraPauseEnabled && styles.pauseButtonTextDisabled]}>Pausa</Text>
+        </Pressable>
+      </View>
       <SummaryGrid>
         <MetricCard
           label="Saldo do periodo"
@@ -40,3 +61,42 @@ export function TodayScreen() {
     </ScreenTemplate>
   );
 }
+
+const styles = StyleSheet.create({
+  actionRow: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    justifyContent: "center"
+  },
+  actionSpacer: {
+    width: 86
+  },
+  pauseButton: {
+    alignItems: "center",
+    alignSelf: "flex-end",
+    backgroundColor: colors.primary,
+    borderRadius: 22,
+    gap: 6,
+    height: 82,
+    justifyContent: "center",
+    marginBottom: 10,
+    marginLeft: 10,
+    width: 82
+  },
+  pauseButtonDisabled: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderWidth: 1
+  },
+  pauseButtonPressed: {
+    opacity: 0.82
+  },
+  pauseButtonText: {
+    color: colors.primaryText,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  pauseButtonTextDisabled: {
+    color: colors.muted
+  }
+});

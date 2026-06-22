@@ -102,7 +102,7 @@ export function validatePunchEvents(events: PunchEvent[]): string | null {
       if (pauseOpen) {
         return "Existe uma pausa sem volta antes da saída.";
       }
-
+      
       if (index !== sorted.length - 1) {
         return "A saída precisa ser o último ponto do dia.";
       }

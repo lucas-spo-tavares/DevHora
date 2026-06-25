@@ -13,6 +13,7 @@ ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV DEV_USER=dev
 ENV DEV_HOME=/home/dev
+ENV GRADLE_USER_HOME=/home/node/.gradle
 ENV PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/usr/lib/jvm/java-17-openjdk-amd64/bin:${PATH}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -56,8 +57,8 @@ RUN existing_group="$(getent group "${HOST_GID}" | cut -d: -f1 || true)" \
        user_name="${DEV_USER}"; \
        user_home="${DEV_HOME}"; \
      fi \
-  && mkdir -p "${user_home}/.gradle" \
-  && chown -R "${user_name}:${group_name}" "${user_home}" "${ANDROID_HOME}"
+  && mkdir -p "${user_home}/.gradle" /home/node/.gradle \
+  && chown -R "${user_name}:${group_name}" "${user_home}" "${ANDROID_HOME}" /home/node/.gradle
 
 COPY entrypoint.sh /usr/local/bin/devhora-eas-entrypoint
 RUN chmod +x /usr/local/bin/devhora-eas-entrypoint

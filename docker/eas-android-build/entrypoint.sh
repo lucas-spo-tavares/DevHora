@@ -3,7 +3,7 @@
 set -euo pipefail
 
 mkdir -p \
-  "${HOME}/.gradle" \
+  "${GRADLE_USER_HOME:-${HOME}/.gradle}" \
   "${DEVHORA_ANDROID_ARTIFACTS_DIR:-/workspace/artifacts/android/docker-local}"
 
 exec "$@"

@@ -60,9 +60,10 @@ DOCKER_ARGS=(
   --rm
   "${DOCKER_TTY[@]}"
   -v "$ROOT_DIR:/workspace"
-  -v devhora-android-gradle:/home/dev/.gradle
+  -v devhora-android-gradle:/home/node/.gradle
   -w /workspace/apps/mobile/android
-  -e "HOME=/home/dev"
+  -e "HOME=/home/node"
+  -e "GRADLE_USER_HOME=/home/node/.gradle"
   -e "DEVHORA_ANDROID_ARTIFACTS_DIR=/workspace/${ARTIFACTS_RELATIVE}"
 )
 

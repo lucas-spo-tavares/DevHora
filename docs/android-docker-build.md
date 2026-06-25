@@ -69,4 +69,5 @@ Para passar argumentos extras ao Gradle:
 ## Observacoes
 
 - O build usa `assembleRelease` para APK e `bundleRelease` para AAB.
+- O cache do Gradle fica no volume Docker nomeado `devhora-android-gradle`, via `GRADLE_USER_HOME=/home/node/.gradle`, para evitar baixar o wrapper e dependencias em toda execucao.
 - Se nao existir keystore de release configurada em `apps/mobile/android/keystore.properties`, o projeto hoje cai no keystore de debug para compilar o release. Isso serve para testes, mas nao para publicar atualizacoes na Play Store.

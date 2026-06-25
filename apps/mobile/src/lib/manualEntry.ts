@@ -42,19 +42,30 @@ export function sortPunchEvents(events: PunchEvent[]): PunchEvent[] {
   });
 }
 
-export function validatePunchEvents(events: PunchEvent[]): string | null {
+type ValidatePunchEventsOptions = {
+  allowOpenDay?: boolean;
+};
+
+export function validatePunchEvents(events: PunchEvent[], options: ValidatePunchEventsOptions = {}): string | null {
+  const { allowOpenDay = false } = options;
   const sorted = sortPunchEvents(events);
   const startCount = sorted.filter((event) => event.type === "start").length;
   const endCount = sorted.filter((event) => event.type === "end").length;
-  const pauseStartCount = sorted.filter((event) => event.type === "pauseStart").length;
-  const pauseEndCount = sorted.filter((event) => event.type === "pauseEnd").length;
 
-  if (startCount !== 1 || endCount !== 1) {
-    return "O dia precisa ter exatamente uma entrada e uma saída.";
+  if (!sorted.length) {
+    return null;
   }
 
-  if (pauseStartCount !== pauseEndCount) {
-    return "As pausas precisam estar em pares: início e volta.";
+  if (startCount !== 1) {
+    return "O dia precisa ter exatamente uma entrada.";
+  }
+
+  if (allowOpenDay) {
+    if (endCount > 1) {
+      return "Só é permitida uma saída por dia.";
+    }
+  } else if (endCount !== 1) {
+    return "O dia precisa ter exatamente uma saída.";
   }
 
   let hasStarted = false;
@@ -102,11 +113,15 @@ export function validatePunchEvents(events: PunchEvent[]): string | null {
       if (pauseOpen) {
         return "Existe uma pausa sem volta antes da saída.";
       }
-      
+
       if (index !== sorted.length - 1) {
         return "A saída precisa ser o último ponto do dia.";
       }
     }
+  }
+
+  if (!allowOpenDay && !sorted.some((event) => event.type === "end")) {
+    return "O dia precisa ter exatamente uma saída.";
   }
 
   return null;

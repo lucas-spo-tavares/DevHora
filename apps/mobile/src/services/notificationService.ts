@@ -8,6 +8,8 @@ const NOTIFICATION_CHANNEL_ID = "devhora-reminders";
 const NOTIFICATION_KIND = "devhora-work-reminder";
 
 let isConfigured = false;
+let latestSyncRequestId = 0;
+let syncQueue: Promise<void> = Promise.resolve();
 
 type SyncNotificationSchedulesParams = {
   events: PunchEvent[];
@@ -106,15 +108,40 @@ export async function syncWorkNotifications({ events, settings }: SyncNotificati
     return;
   }
 
-  await configureNotificationSystem();
-  await cancelWorkNotifications();
+  const requestId = ++latestSyncRequestId;
 
-  if (!(await hasNotificationPermission())) {
-    return;
-  }
+  syncQueue = syncQueue.then(async () => {
+    if (requestId !== latestSyncRequestId) {
+      return;
+    }
 
-  await scheduleGenericAlerts(settings.notifications.alerts);
-  await scheduleSpecialAlerts(events, settings);
+    await configureNotificationSystem();
+
+    if (requestId !== latestSyncRequestId) {
+      return;
+    }
+
+    await cancelWorkNotifications();
+
+    if (requestId !== latestSyncRequestId) {
+      return;
+    }
+
+    if (!(await hasNotificationPermission())) {
+      return;
+    }
+
+    await scheduleGenericAlerts(settings.notifications.alerts);
+
+    if (requestId !== latestSyncRequestId) {
+      await cancelWorkNotifications();
+      return;
+    }
+
+    await scheduleSpecialAlerts(events, settings);
+  });
+
+  await syncQueue;
 }
 
 async function scheduleGenericAlerts(alerts: Settings["notifications"]["alerts"]) {
@@ -175,7 +202,7 @@ async function scheduleReturnAlert(
   }
 
   const pauseStartedAt = new Date(pauseStart.timestamp).getTime();
-  const pauseElapsedMinutes = Math.max(0, Math.round((Date.now() - pauseStartedAt) / 60_000));
+  const pauseElapsedMinutes = Math.max(0, Math.floor((Date.now() - pauseStartedAt) / 60_000));
   const minutesUntilReminder = pauseDurationMinutes - alert.leadMinutes - pauseElapsedMinutes;
 
   if (minutesUntilReminder < 0) {
@@ -203,7 +230,7 @@ async function scheduleOvertimeAlert(alert: SpecialNotificationAlert, events: Pu
 
   const startDate = new Date(openIntervalStart.timestamp);
   const workedSoFar = workedMinutes(events);
-  const activeMinutesElapsed = Math.max(0, Math.round((Date.now() - startDate.getTime()) / 60_000));
+  const activeMinutesElapsed = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 60_000));
   const totalWorkedMinutes = workedSoFar + activeMinutesElapsed;
   const remainingToTarget = dailyMinutes - totalWorkedMinutes;
   const remainingToReminder = remainingToTarget - alert.leadMinutes;

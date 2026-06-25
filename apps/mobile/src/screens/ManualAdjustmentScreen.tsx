@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { Calendar, Clock3, Plus, Trash2 } from "lucide-react-native";
 import { createEmptyEntry, nextPunchType, summarizeDay } from "../lib/calculations";
@@ -23,6 +24,7 @@ import { TextField } from "../components/atoms/TextField";
 import { ToggleField } from "../components/molecules/ToggleField";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
 import type { RootTabParamList } from "../navigation/AppNavigator";
+import { registerManualAdjustmentLeaveHandler } from "../navigation/manualAdjustmentLeaveGuard";
 
 type PunchOption = {
   label: string;
@@ -43,10 +45,16 @@ const PUNCH_OPTIONS: PunchOption[] = [
   { label: "Saída", value: "end" }
 ];
 
+function createCurrentDraftTime(dateKey: string) {
+  const now = new Date();
+
+  return createDraftTime(dateKey, now.getHours(), now.getMinutes());
+}
+
 function createEmptyDraftEvent(dateKey: string, type: PunchType = "start"): DraftPunchEvent {
   return {
     id: `${Date.now()}-${Math.random()}`,
-    time: createDraftTime(dateKey, 8, 0),
+    time: createCurrentDraftTime(dateKey),
     type
   };
 }
@@ -75,6 +83,10 @@ function normalizeDraftEvents(dateKey: string, events: DraftPunchEvent[]): WorkE
   }
 
   return sortPunchEvents(builtEvents as WorkEntry["events"]);
+}
+
+function isOpenWorkday(events: WorkEntry["events"]) {
+  return events.length > 0 && events.at(-1)?.type !== "end";
 }
 
 type DraftEventRowProps = {
@@ -121,7 +133,7 @@ function DraftEventRow({ event, index, onEditTime, onChange, onRemove }: DraftEv
 }
 
 export function ManualAdjustmentScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList, "Adjustment">>();
   const route = useRoute<RouteProp<RootTabParamList, "Adjustment">>();
   const entries = useWorkStore((state) => state.entries);
   const settings = useWorkStore((state) => state.settings);
@@ -131,32 +143,68 @@ export function ManualAdjustmentScreen() {
   const [draftEvents, setDraftEvents] = useState<DraftPunchEvent[]>([]);
   const [excludeFromBalance, setExcludeFromBalance] = useState(false);
   const [note, setNote] = useState("");
-  const [newEventTime, setNewEventTime] = useState(createDraftTime(todayKey(), 8, 0));
+  const [newEventTime, setNewEventTime] = useState(createCurrentDraftTime(todayKey()));
   const [newEventType, setNewEventType] = useState<PunchType>("start");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [draftPickerDate, setDraftPickerDate] = useState(parseDateKey(todayKey()));
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
-  const [draftPickerTime, setDraftPickerTime] = useState(createDraftTime(todayKey(), 8, 0));
+  const [draftPickerTime, setDraftPickerTime] = useState(createCurrentDraftTime(todayKey()));
   const [timePickerTarget, setTimePickerTarget] = useState<TimePickerTarget>(null);
-  const loadedDateRef = useRef(loadedDate);
-
-  useEffect(() => {
-    loadedDateRef.current = loadedDate;
-  }, [loadedDate]);
+  const allowNextNavigationRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (event) => {
-      const autosaveStatus = autosaveDraft();
-
-      if (autosaveStatus !== "invalid") {
+      if (allowNextNavigationRef.current) {
+        allowNextNavigationRef.current = false;
         return;
       }
 
+      if (!hasDraftChanges()) {
+        return;
+      }
+
+      const validationError = getDraftValidationError();
+
       event.preventDefault();
-      Alert.alert("Edição manual", "Revise os pontos antes de sair. Ainda existe uma alteração inválida não salva.");
+
+      if (!validationError) {
+        persistDraft(false);
+        allowNextNavigationRef.current = true;
+        navigation.dispatch(event.data.action);
+        return;
+      }
+
+      Alert.alert(
+        "Alterações inválidas",
+        `${validationError}\n\nSe sair agora, essas alterações não serão salvas.`,
+        [
+          {
+            style: "cancel",
+            text: "Cancelar e ajustar"
+          },
+          {
+            style: "destructive",
+            text: "Seguir sem salvar",
+            onPress: () => {
+              allowNextNavigationRef.current = true;
+              navigation.dispatch(event.data.action);
+            }
+          }
+        ]
+      );
     });
 
     return unsubscribe;
+  }, [navigation, draftEvents, excludeFromBalance, loadedDate, note]);
+
+  useEffect(() => {
+    if (!navigation.isFocused()) {
+      return;
+    }
+
+    return registerManualAdjustmentLeaveHandler((proceed) => {
+      attemptLeaveCurrentDraft(proceed, "sair");
+    });
   }, [navigation, draftEvents, excludeFromBalance, loadedDate, note]);
 
   useEffect(() => {
@@ -167,8 +215,7 @@ export function ManualAdjustmentScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const targetDate =
-        route.params?.dateKey && isValidDateKey(route.params.dateKey) ? route.params.dateKey : loadedDateRef.current || todayKey();
+      const targetDate = route.params?.dateKey && isValidDateKey(route.params.dateKey) ? route.params.dateKey : todayKey();
 
       loadDay(targetDate);
     }, [route.params?.dateKey, entries])
@@ -186,7 +233,7 @@ export function ManualAdjustmentScreen() {
     setDraftEvents(entry.events.map(toDraftPunchEvent));
     setExcludeFromBalance(entry.excludeFromBalance);
     setNote(entry.note);
-    setNewEventTime(entry.events.at(-1) ? new Date(entry.events.at(-1)!.timestamp) : createDraftTime(targetDate, 8, 0));
+    setNewEventTime(createCurrentDraftTime(targetDate));
     setNewEventType(nextPunchType(entry.events) ?? "start");
   }
 
@@ -198,15 +245,10 @@ export function ManualAdjustmentScreen() {
         mode: "date",
         onChange: (_, selectedDate) => {
           if (selectedDate) {
-            const autosaveStatus = autosaveDraft();
-
-            if (autosaveStatus === "invalid") {
-              Alert.alert("Edição manual", "Revise os pontos antes de trocar de dia. Ainda existe uma alteração inválida não salva.");
-              return;
-            }
-
-            setDraftPickerDate(selectedDate);
-            loadDay(toDateKey(selectedDate));
+            attemptLeaveCurrentDraft(() => {
+              setDraftPickerDate(selectedDate);
+              loadDay(toDateKey(selectedDate));
+            });
           }
         },
         value: currentDate
@@ -220,15 +262,11 @@ export function ManualAdjustmentScreen() {
 
   function confirmDatePicker() {
     const targetDate = toDateKey(draftPickerDate);
-    const autosaveStatus = autosaveDraft();
 
-    if (autosaveStatus === "invalid") {
-      Alert.alert("Edição manual", "Revise os pontos antes de trocar de dia. Ainda existe uma alteração inválida não salva.");
-      return;
-    }
-
-    loadDay(targetDate);
-    setIsDatePickerOpen(false);
+    attemptLeaveCurrentDraft(() => {
+      loadDay(targetDate);
+      setIsDatePickerOpen(false);
+    });
   }
 
   function discardChanges() {
@@ -254,10 +292,26 @@ export function ManualAdjustmentScreen() {
     });
   }
 
-  function persistDraft(showSuccess = false): boolean {
+  function getDraftValidationError(): string | null {
     if (!isValidDateKey(loadedDate)) {
+      return "Use uma data no formato AAAA-MM-DD.";
+    }
+
+    const events = normalizeDraftEvents(loadedDate, draftEvents);
+
+    if (!events) {
+      return "Revise os horários dos pontos. Use o formato HH:MM em todos eles.";
+    }
+
+    return validatePunchEvents(events, { allowOpenDay: true });
+  }
+
+  function persistDraft(showSuccess = false): boolean {
+    const validationError = getDraftValidationError();
+
+    if (validationError) {
       if (showSuccess) {
-        Alert.alert("Edição manual", "Use uma data no formato AAAA-MM-DD.");
+        Alert.alert("Edição manual", validationError);
       }
 
       return false;
@@ -266,20 +320,6 @@ export function ManualAdjustmentScreen() {
     const events = normalizeDraftEvents(loadedDate, draftEvents);
 
     if (!events) {
-      if (showSuccess) {
-        Alert.alert("Edição manual", "Revise os horários dos pontos. Use o formato HH:MM em todos eles.");
-      }
-
-      return false;
-    }
-
-    const validationError = validatePunchEvents(events);
-
-    if (validationError) {
-      if (showSuccess) {
-        Alert.alert("Edição manual", validationError);
-      }
-
       return false;
     }
 
@@ -292,18 +332,46 @@ export function ManualAdjustmentScreen() {
     });
 
     if (showSuccess) {
-      Alert.alert("Dia salvo", "Os pontos deste dia foram atualizados.");
+      Alert.alert(
+        "Dia salvo",
+        isOpenWorkday(events)
+          ? "Os pontos deste dia foram atualizados. O dia continua em aberto e pode ser encerrado depois."
+          : "Os pontos deste dia foram atualizados."
+      );
     }
 
     return true;
   }
 
-  function autosaveDraft(): "saved" | "unchanged" | "invalid" {
+  function attemptLeaveCurrentDraft(onContinue: () => void, actionLabel: "continuar" | "sair" = "continuar") {
     if (!hasDraftChanges()) {
-      return "unchanged";
+      onContinue();
+      return;
     }
 
-    return persistDraft(false) ? "saved" : "invalid";
+    const validationError = getDraftValidationError();
+
+    if (!validationError) {
+      persistDraft(false);
+      onContinue();
+      return;
+    }
+
+    Alert.alert(
+      "Alterações inválidas",
+      `${validationError}\n\nSe ${actionLabel} agora, essas alterações não serão salvas.`,
+      [
+        {
+          style: "cancel",
+          text: "Cancelar e ajustar"
+        },
+        {
+          style: "destructive",
+          text: "Seguir sem salvar",
+          onPress: onContinue
+        }
+      ]
+    );
   }
 
   function applySelectedTime(target: TimePickerTarget, selectedTime: Date) {
@@ -373,7 +441,12 @@ export function ManualAdjustmentScreen() {
   }
 
   const currentEntry = entries[loadedDate] ?? createEmptyEntry(loadedDate);
-  const previewEvents = normalizeDraftEvents(loadedDate, draftEvents) ?? currentEntry.events;
+  const normalizedPreviewEvents = normalizeDraftEvents(loadedDate, draftEvents);
+  const previewEvents = normalizedPreviewEvents ?? currentEntry.events;
+  const previewValidationError = normalizedPreviewEvents
+    ? validatePunchEvents(previewEvents, { allowOpenDay: true })
+    : "Revise os horários dos pontos. Use o formato HH:MM em todos eles.";
+  const previewIsOpen = isOpenWorkday(previewEvents);
   const preview = summarizeDay(
     {
       entries: {
@@ -463,6 +536,10 @@ export function ManualAdjustmentScreen() {
           Feito: {formatMinutes(preview.workedMinutes)} | Saldo: {formatSignedMinutes(preview.balanceMinutes)}
         </Text>
         {preview.excludeFromBalance ? <Text style={styles.summaryHint}>Este dia não entra no saldo.</Text> : null}
+        {!previewValidationError && previewIsOpen ? (
+          <Text style={styles.summaryHint}>Este dia está em aberto. Você pode ajustar agora e encerrar depois.</Text>
+        ) : null}
+        {previewValidationError ? <Text style={styles.summaryWarning}>{previewValidationError}</Text> : null}
       </View>
 
       {draftEvents.length ? (
@@ -716,6 +793,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     fontWeight: "700"
+  },
+  summaryWarning: {
+    color: colors.dangerSoftText,
+    fontSize: 13,
+    lineHeight: 18
   },
   summaryValue: {
     color: colors.text,

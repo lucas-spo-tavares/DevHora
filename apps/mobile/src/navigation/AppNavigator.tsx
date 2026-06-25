@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { hasManualAdjustmentLeaveHandler, runManualAdjustmentLeaveHandler } from "./manualAdjustmentLeaveGuard";
 import { BarChart3, Calendar, PencilLine, Settings } from "lucide-react-native";
 import { ManualAdjustmentScreen } from "../screens/ManualAdjustmentScreen";
 import { ProgressScreen } from "../screens/ProgressScreen";
@@ -16,6 +17,24 @@ export type RootTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
+
+function createTabLeaveListener(targetTab: Exclude<keyof RootTabParamList, "Adjustment">) {
+  return ({ navigation }: { navigation: any }) => ({
+    tabPress: (event: { preventDefault: () => void }) => {
+      const state = navigation.getState();
+      const currentRoute = state.routes[state.index];
+
+      if (currentRoute?.name !== "Adjustment" || !hasManualAdjustmentLeaveHandler()) {
+        return;
+      }
+
+      event.preventDefault();
+      runManualAdjustmentLeaveHandler(() => {
+        navigation.navigate(targetTab);
+      });
+    }
+  });
+}
 
 export function AppNavigator() {
   return (
@@ -39,6 +58,7 @@ export function AppNavigator() {
       }}
     >
       <Tab.Screen
+        listeners={createTabLeaveListener("Today")}
         name="Today"
         options={{
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
@@ -48,6 +68,7 @@ export function AppNavigator() {
         {() => <TodayScreen />}
       </Tab.Screen>
       <Tab.Screen
+        listeners={createTabLeaveListener("Progress")}
         name="Progress"
         options={{
           tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
@@ -66,6 +87,7 @@ export function AppNavigator() {
         {() => <ManualAdjustmentScreen />}
       </Tab.Screen>
       <Tab.Screen
+        listeners={createTabLeaveListener("Settings")}
         name="Settings"
         options={{
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,

@@ -38,6 +38,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def expoConfig = new JsonSlurper().parse(new File(mobileDir, "app.json")).expo
+
+def appVersionName = (expoConfig?.version ?: "1.0.2") as String
+
+def appVersionCode = ((expoConfig?.android?.versionCode ?: 12) as Number).intValue()
 
 static def versionToNumber(major, minor, patch) {
   return patch * 100 + minor * 10000 + major * 1000000
@@ -146,8 +151,8 @@ android {
         applicationId 'com.devhora.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.0.1"
+        versionCode appVersionCode
+        versionName appVersionName
     }
     signingConfigs {
         debug {

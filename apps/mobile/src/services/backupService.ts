@@ -8,6 +8,11 @@ import { sortPunchEvents } from "../lib/manualEntry";
 import { sanitizeAppData } from "../storage/appStorage";
 import { AppData, DaySummary, PunchType } from "../types/app";
 
+type PauseInterval = {
+  end: string;
+  start: string;
+};
+
 export async function exportBackup(data: AppData): Promise<string | null> {
   const filename = `devhora-backup-${todayKey()}.json`;
   const targetDirectory = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
@@ -125,20 +130,19 @@ function buildProgressCsv(data: AppData, summaries: DaySummary[]): { contents: s
       "data",
       "rotulo",
       "entrada",
-      "pausa_inicio",
-      "pausa_fim",
+      "pausas",
       "saida",
       "eventos",
       "previsto_min",
       "trabalhado_min",
       "saldo_min",
+      "pausa_total_min",
       "pendente"
     ].join(","),
     ...summaries.map((day) =>
       buildDayCsvRow(data, day.date, day.expectedMinutes, day.workedMinutes, day.balanceMinutes, day.isMissing)
     ),
     [
-      "TOTAL",
       "TOTAL",
       "",
       "",
@@ -148,6 +152,7 @@ function buildProgressCsv(data: AppData, summaries: DaySummary[]): { contents: s
       totals.expectedMinutes,
       totals.workedMinutes,
       totals.balanceMinutes,
+      "",
       totals.missingDays
     ]
       .map(escapeCsvValue)
@@ -170,18 +175,19 @@ function buildDayCsvRow(
 ): string {
   const entry = data.entries[dateKey];
   const events = entry ? sortPunchEvents(entry.events) : [];
+  const pauseIntervals = collectPauseIntervals(events);
 
   const columns = [
     dateKey,
     formatDateLabel(dateKey),
     formatEventTime(events, "start"),
-    formatEventTime(events, "pauseStart"),
-    formatEventTime(events, "pauseEnd"),
+    formatPauseIntervals(pauseIntervals),
     formatEventTime(events, "end"),
     formatEventSequence(events),
     expectedMinutes,
     workedMinutes,
     balanceMinutes,
+    calculatePauseTotalMinutes(pauseIntervals),
     isMissing ? "sim" : "nao"
   ];
 
@@ -196,4 +202,48 @@ function formatEventTime(events: { timestamp: string; type: PunchType }[], type:
 
 function formatEventSequence(events: { timestamp: string; type: PunchType }[]): string {
   return events.map((event) => `${formatClock(event.timestamp)}(${event.type})`).join(" | ");
+}
+
+function collectPauseIntervals(events: { timestamp: string; type: PunchType }[]): PauseInterval[] {
+  const intervals: PauseInterval[] = [];
+  let openPauseStart: string | null = null;
+
+  for (const event of events) {
+    if (event.type === "pauseStart") {
+      openPauseStart = event.timestamp;
+      continue;
+    }
+
+    if (event.type === "pauseEnd" && openPauseStart) {
+      intervals.push({
+        end: event.timestamp,
+        start: openPauseStart
+      });
+      openPauseStart = null;
+      continue;
+    }
+
+    if (event.type === "end") {
+      openPauseStart = null;
+    }
+  }
+
+  return intervals;
+}
+
+function formatPauseIntervals(intervals: PauseInterval[]): string {
+  if (!intervals.length) {
+    return "";
+  }
+
+  return intervals.map((interval) => `${formatClock(interval.start)}-${formatClock(interval.end)}`).join(" | ");
+}
+
+function calculatePauseTotalMinutes(intervals: PauseInterval[]): number {
+  return intervals.reduce((total, interval) => {
+    const start = new Date(interval.start).getTime();
+    const end = new Date(interval.end).getTime();
+
+    return total + Math.max(0, Math.round((end - start) / 60000));
+  }, 0);
 }

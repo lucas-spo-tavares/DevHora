@@ -1,6 +1,7 @@
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Platform, StyleSheet, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import Constants from "expo-constants";
 import { BackupPanel } from "../components/organisms/BackupPanel";
 import { DailyHoursPanel } from "../components/organisms/DailyHoursPanel";
 import { LunchBreakPanel } from "../components/organisms/LunchBreakPanel";
@@ -11,11 +12,18 @@ import { WorkdaysPanel } from "../components/organisms/WorkdaysPanel";
 import { ScreenTemplate } from "../components/templates/ScreenTemplate";
 import { exportBackup, importBackup } from "../services/backupService";
 import { getAppDataSnapshot, useWorkStore } from "../store/workStore";
+import { colors } from "../theme/colors";
 import type { SettingsStackParamList } from "../navigation/SettingsStackNavigator";
 
 const PRIVACY_POLICY_URL = "https://devhora.lucas-tavares.com/privacy";
 
 export function SettingsScreen() {
+  const appVersion = Constants.expoConfig?.version ?? "desconhecida";
+  const androidVersionCode = Constants.expoConfig?.android?.versionCode;
+  const versionLabel =
+    Platform.OS === "android" && typeof androidVersionCode === "number"
+      ? `${appVersion} (${androidVersionCode})`
+      : appVersion;
   const navigation = useNavigation<StackNavigationProp<SettingsStackParamList>>();
   const dailyMinutes = useWorkStore((state) => state.settings.dailyMinutes);
   const periodStart = useWorkStore((state) => state.settings.periodStart);
@@ -80,6 +88,17 @@ export function SettingsScreen() {
       <NotificationSettingsPanel onPress={() => navigation.navigate("Notifications")} />
       <BackupPanel onExportBackup={handleExportBackup} onImportBackup={handleImportBackup} />
       <PrivacyPolicyPanel onOpenPrivacyPolicy={handleOpenPrivacyPolicy} />
+      <Text style={styles.versionText}>Versao {versionLabel}</Text>
     </ScreenTemplate>
   );
 }
+
+const styles = StyleSheet.create({
+  versionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    paddingBottom: 8,
+    textAlign: "center"
+  }
+});

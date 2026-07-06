@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     height: 82,
     justifyContent: "center",
     marginBottom: 10,
-    marginLeft: 10,
+    marginLeft: 4,
     width: 82
   },
   pauseButtonDisabled: {

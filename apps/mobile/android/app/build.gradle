@@ -40,9 +40,9 @@ if (keystorePropertiesFile.exists()) {
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 def expoConfig = new JsonSlurper().parse(new File(mobileDir, "app.json")).expo
 
-def appVersionName = (expoConfig?.version ?: "1.0.3") as String
+def appVersionName = (expoConfig?.version ?: "1.0.4") as String
 
-def appVersionCode = ((expoConfig?.android?.versionCode ?: 13) as Number).intValue()
+def appVersionCode = ((expoConfig?.android?.versionCode ?: 14) as Number).intValue()
 
 static def versionToNumber(major, minor, patch) {
   return patch * 100 + minor * 10000 + major * 1000000

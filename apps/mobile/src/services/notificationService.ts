@@ -11,6 +11,10 @@ let isConfigured = false;
 let latestSyncRequestId = 0;
 let syncQueue: Promise<void> = Promise.resolve();
 
+function logNotificationSyncError(error: unknown, context: string) {
+  console.warn(`[notificationService] ${context}`, error);
+}
+
 type SyncNotificationSchedulesParams = {
   events: PunchEvent[];
   settings: Settings;
@@ -109,8 +113,7 @@ export async function syncWorkNotifications({ events, settings }: SyncNotificati
   }
 
   const requestId = ++latestSyncRequestId;
-
-  syncQueue = syncQueue.then(async () => {
+  const runSync = async () => {
     if (requestId !== latestSyncRequestId) {
       return;
     }
@@ -139,7 +142,16 @@ export async function syncWorkNotifications({ events, settings }: SyncNotificati
     }
 
     await scheduleSpecialAlerts(events, settings);
-  });
+  };
+
+  syncQueue = syncQueue
+    .catch((error) => {
+      logNotificationSyncError(error, "Sync queue recovered after previous failure.");
+    })
+    .then(runSync)
+    .catch((error) => {
+      logNotificationSyncError(error, "Failed to sync work notifications.");
+    });
 
   await syncQueue;
 }

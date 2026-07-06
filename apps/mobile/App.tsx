@@ -1,13 +1,14 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { AppLayout } from "./src/components/templates/AppLayout";
-import { NotificationSyncBridge } from "./src/components/organisms/NotificationSyncBridge";
+import { useNotificationSync } from "./src/hooks/useNotificationSync";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 
 export default function App() {
+  useNotificationSync();
+
   return (
     <AppLayout>
       <NavigationContainer>
-        <NotificationSyncBridge />
         <AppNavigator />
       </NavigationContainer>
     </AppLayout>

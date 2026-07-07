@@ -145,6 +145,46 @@ export function NotificationSettingsScreen() {
     setIsTimePickerOpen(true);
   }
 
+  async function requestNotificationPermission(title: string, message: string) {
+    const allowed = await ensureNotificationPermission();
+
+    if (!allowed) {
+      Alert.alert(title, message);
+    }
+
+    return allowed;
+  }
+
+  async function handleGenericAlertToggle(alertId: string, enabled: boolean) {
+    if (enabled) {
+      const allowed = await requestNotificationPermission(
+        "Notificações",
+        "Preciso da permissão de notificações para ativar esse alerta. Libere isso nas configurações do aparelho."
+      );
+
+      if (!allowed) {
+        return;
+      }
+    }
+
+    updateNotificationAlert(alertId, { enabled });
+  }
+
+  async function handleSpecialAlertToggle(alertId: string, enabled: boolean) {
+    if (enabled) {
+      const allowed = await requestNotificationPermission(
+        "Notificações",
+        "Preciso da permissão de notificações para ativar esse lembrete. Libere isso nas configurações do aparelho."
+      );
+
+      if (!allowed) {
+        return;
+      }
+    }
+
+    updateSpecialNotificationAlert(alertId, { enabled });
+  }
+
   async function saveGenericAlert() {
     if (!genericDraft.label.trim()) {
       Alert.alert("Alerta", "Escreva um nome para esse alerta.");
@@ -186,13 +226,12 @@ export function NotificationSettingsScreen() {
     }
 
     if (specialDraft.enabled) {
-      const allowed = await ensureNotificationPermission();
+      const allowed = await requestNotificationPermission(
+        "Notificações",
+        "Preciso da permissão de notificações para ativar esse lembrete. Libere isso nas configurações do aparelho."
+      );
 
       if (!allowed) {
-        Alert.alert(
-          "Notificações",
-          "Preciso da permissão de notificações para ativar esse lembrete. Libere isso nas configurações do aparelho."
-        );
         return;
       }
     }
@@ -268,21 +307,7 @@ export function NotificationSettingsScreen() {
             label={alert.label || `Alerta ${index + 1}`}
             onEdit={() => openGenericAlertEditor(alert)}
             onRemove={() => confirmRemoveGenericAlert(alert)}
-            onToggleEnabled={async (enabled) => {
-              if (enabled) {
-                const allowed = await ensureNotificationPermission();
-
-                if (!allowed) {
-                  Alert.alert(
-                    "Notificações",
-                    "Preciso da permissão de notificações para ativar esse alerta. Libere isso nas configurações do aparelho."
-                  );
-                  return;
-                }
-              }
-
-              updateNotificationAlert(alert.id, { enabled });
-            }}
+            onToggleEnabled={(enabled) => handleGenericAlertToggle(alert.id, enabled)}
             time={alert.time}
           />
         ))
@@ -309,21 +334,7 @@ export function NotificationSettingsScreen() {
               leadMinutes={alert.leadMinutes}
               onEdit={() => openSpecialAlertEditor("returnReminder", alert)}
               onRemove={() => confirmRemoveSpecialAlert(alert)}
-              onToggleEnabled={async (enabled) => {
-                if (enabled) {
-                  const allowed = await ensureNotificationPermission();
-
-                  if (!allowed) {
-                    Alert.alert(
-                      "Notificações",
-                      "Preciso da permissão de notificações para ativar esse lembrete. Libere isso nas configurações do aparelho."
-                    );
-                    return;
-                  }
-                }
-
-                updateSpecialNotificationAlert(alert.id, { enabled });
-              }}
+              onToggleEnabled={(enabled) => handleSpecialAlertToggle(alert.id, enabled)}
               subtitle="Aviso relativo ao tempo de pausa"
             />
           ))
@@ -351,21 +362,7 @@ export function NotificationSettingsScreen() {
               leadMinutes={alert.leadMinutes}
               onEdit={() => openSpecialAlertEditor("overtimeReminder", alert)}
               onRemove={() => confirmRemoveSpecialAlert(alert)}
-              onToggleEnabled={async (enabled) => {
-                if (enabled) {
-                  const allowed = await ensureNotificationPermission();
-
-                  if (!allowed) {
-                    Alert.alert(
-                      "Notificações",
-                      "Preciso da permissão de notificações para ativar esse lembrete. Libere isso nas configurações do aparelho."
-                    );
-                    return;
-                  }
-                }
-
-                updateSpecialNotificationAlert(alert.id, { enabled });
-              }}
+              onToggleEnabled={(enabled) => handleSpecialAlertToggle(alert.id, enabled)}
               subtitle="Aviso relativo ao total de horas do dia"
             />
           ))

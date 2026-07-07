@@ -29,21 +29,22 @@ export function TodayScreen() {
     <ScreenTemplate eyebrow={formatLongDate(date)} title="Hoje">
       <StatusPanel events={entry.events} />
       <View style={styles.actionRow}>
-        <View style={styles.actionSpacer} />
-        <PunchAction nextAction={nextAction} onPunch={punchToday} />
-        <Pressable
-          accessibilityRole="button"
-          disabled={!extraPauseEnabled}
-          onPress={() => addPunchEventToday("pauseStart")}
-          style={({ pressed }) => [
-            styles.pauseButton,
-            !extraPauseEnabled && styles.pauseButtonDisabled,
-            pressed && extraPauseEnabled && styles.pauseButtonPressed
-          ]}
-        >
-          <Coffee color={extraPauseEnabled ? colors.primaryText : colors.muted} size={22} />
-          <Text style={[styles.pauseButtonText, !extraPauseEnabled && styles.pauseButtonTextDisabled]}>Pausa</Text>
-        </Pressable>
+        <View style={styles.actionStack}>
+          <PunchAction nextAction={nextAction} onPunch={punchToday} />
+          <Pressable
+            accessibilityRole="button"
+            disabled={!extraPauseEnabled}
+            onPress={() => addPunchEventToday("pauseStart")}
+            style={({ pressed }) => [
+              styles.pauseButton,
+              !extraPauseEnabled && styles.pauseButtonDisabled,
+              pressed && extraPauseEnabled && styles.pauseButtonPressed
+            ]}
+          >
+            <Coffee color={extraPauseEnabled ? colors.primaryText : colors.muted} size={22} />
+            <Text style={[styles.pauseButtonText, !extraPauseEnabled && styles.pauseButtonTextDisabled]}>Pausa</Text>
+          </Pressable>
+        </View>
       </View>
       <SummaryGrid>
         <MetricCard
@@ -64,24 +65,26 @@ export function TodayScreen() {
 
 const styles = StyleSheet.create({
   actionRow: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    justifyContent: "center"
+    alignItems: "center"
   },
-  actionSpacer: {
-    width: 86
+  actionStack: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 160,
+    position: "relative",
+    width: "100%"
   },
   pauseButton: {
     alignItems: "center",
-    alignSelf: "flex-end",
     backgroundColor: colors.primary,
-    borderRadius: 22,
+    borderRadius: 16,
+    bottom: 10,
     gap: 6,
-    height: 82,
+    height: 60,
     justifyContent: "center",
-    marginBottom: 10,
-    marginLeft: 4,
-    width: 82
+    position: "absolute",
+    right: 0,
+    width: 60
   },
   pauseButtonDisabled: {
     backgroundColor: colors.primarySoft,

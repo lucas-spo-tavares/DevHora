@@ -34,6 +34,7 @@ artifacts/android/*.apk
 *.keystore
 *.p8
 *.p12
+.secrets/*
 apps/mobile/android/keystore.properties
 
 # Hosting / tooling

@@ -20,6 +20,7 @@
     "mobile:build:apk": "npm run build:apk --workspace @devhora/mobile",
     "mobile:build:aab": "npm run build:aab --workspace @devhora/mobile",
     "mobile:build:local": "./scripts/build-mobile-release.sh aab",
+    "mobile:play:internal": "node ./scripts/release-google-play-internal.mjs",
     "mobile:docker:build:apk": "./scripts/eas-build-android-docker.sh apk",
     "mobile:docker:build:aab": "./scripts/eas-build-android-docker.sh aab",
     "landing:dev": "npm run dev --workspace @devhora/landing",
